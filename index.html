@@ -78,6 +78,15 @@
     border-color: #8fd9b0;
     background: #1e4a3b;
   }
+  #lobbyList { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  #lobbyList button {
+    border: 1px solid var(--line);
+    background: #10241d;
+    border-radius: 12px;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  #lobbyList button:hover { border-color: #8fd9b0; background: #1e4a3b; }
   #start {
     margin-top: 16px;
     background: #2f9e62;
@@ -246,7 +255,11 @@
     <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
     <label class="block" for="rivalNick">Нік, з ким хочеш грати</label>
     <input id="rivalNick" type="text" maxlength="16" placeholder="необов’язково">
-    <p class="hint" id="netHint">Напиши лише свій нік і грай із ботом. Хто при вході вкаже свій нік і твій, підсяде замість бота. Або одразу впиши чужий нік, якщо ця людина вже в грі. Щойно з’єднаєтесь, буде 10 секунд, і матч почнеться заново.</p>
+    <p class="hint" id="netHint">Напиши лише свій нік і грай із ботом. Хто при вході побачить тебе в списку і підсяде. Або натисни чужий нік у списку, якщо хочеш зайти до когось. Щойно з’єднаєтесь, буде 10 секунд, і матч почнеться заново.</p>
+
+    <div class="block">Зараз грають із ботом</div>
+    <p class="hint" id="lobbyEmpty">Дивлюсь, хто вже грає…</p>
+    <div id="lobbyList"></div>
 
     <div class="block">Суперник</div>
     <div class="speeds" id="rivals">
@@ -432,6 +445,8 @@ const el = {
   nick: document.getElementById('nick'),
   rivalNick: document.getElementById('rivalNick'),
   netHint: document.getElementById('netHint'),
+  lobbyEmpty: document.getElementById('lobbyEmpty'),
+  lobbyList: document.getElementById('lobbyList'),
   netLine: document.getElementById('netLine'),
   tag0: document.getElementById('tag0'),
   name0: document.getElementById('name0'),
@@ -1415,10 +1430,148 @@ function stopCount(resume) {
   }
 }
 
+const lobbySeen = new Map();
+let lobbyMq = null;
+let lobbyTimer = 0;
+let lobbyWant = false;
+
+function loadMqtt() {
+  if (window.mqtt) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('mqtt'));
+    document.head.appendChild(script);
+  });
+}
+
+function shouldAdvertise() {
+  return !!(
+    myNick &&
+    running &&
+    rival !== 'human' &&
+    !rivalNick &&
+    net && net.peer && net.peer.open &&
+    !net.live &&
+    !net.arming &&
+    seats[1] && !seats[1].remote
+  );
+}
+
+function publishLobby(bye) {
+  if (!myNick || !lobbyMq || !lobbyMq.connected) return;
+  try {
+    lobbyMq.publish('dr-mery/open', JSON.stringify(bye ? { n: myNick, bye: 1 } : { n: myNick }));
+  } catch (err) { /* список не обов’язковий */ }
+}
+
+function renderLobby() {
+  if (!el.lobbyList || !el.lobbyEmpty) return;
+  const now = Date.now();
+  const mine = ((el.nick && el.nick.value) || myNick || '').trim().toLowerCase();
+  const names = [];
+  lobbySeen.forEach((row, key) => {
+    if (now - row.at > 12000) { lobbySeen.delete(key); return; }
+    if (mine && key === mine) return;
+    names.push(row.nick);
+  });
+  names.sort((a, b) => a.localeCompare(b, 'uk'));
+  el.lobbyList.replaceChildren();
+  names.forEach((nick) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = nick + ' — підсісти';
+    btn.addEventListener('click', () => joinListed(nick));
+    el.lobbyList.appendChild(btn);
+  });
+  el.lobbyEmpty.hidden = names.length > 0;
+  if (!names.length) {
+    el.lobbyEmpty.hidden = false;
+    if (lobbyMq && lobbyMq.connected) el.lobbyEmpty.textContent = 'Поки ніхто не грає з ботом.';
+  }
+}
+
+function syncLobby() {
+  const on = shouldAdvertise();
+  if (on && !lobbyTimer) {
+    publishLobby(false);
+    lobbyTimer = setInterval(() => {
+      if (!shouldAdvertise()) syncLobby();
+      else publishLobby(false);
+      renderLobby();
+    }, 4000);
+  } else if (!on && lobbyWant) {
+    publishLobby(true);
+    if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = 0; }
+  }
+  lobbyWant = on;
+  renderLobby();
+}
+
+function joinListed(nick) {
+  el.rivalNick.value = nick;
+  if (rival !== 'bot') {
+    rival = 'bot';
+    document.querySelectorAll('#rivals button').forEach((btn) => {
+      btn.setAttribute('aria-pressed', btn.dataset.rival === 'bot' ? 'true' : 'false');
+    });
+    saveOpts();
+  }
+  if (!(el.nick.value || '').trim()) {
+    setNetLine('Напиши свій нік, тоді підсядеш до «' + nick + '».');
+    el.nick.focus();
+    return;
+  }
+  startGame();
+}
+
+function openLobby() {
+  loadMqtt().then(() => {
+    if (!window.mqtt || lobbyMq) return;
+    lobbyMq = window.mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+      clientId: 'mery' + Math.random().toString(16).slice(2, 10) + Date.now().toString(16).slice(-6),
+      clean: true,
+      reconnectPeriod: 4000,
+      connectTimeout: 8000,
+      protocolVersion: 4,
+      keepalive: 30,
+    });
+    lobbyMq.on('connect', () => {
+      lobbyMq.subscribe('dr-mery/open');
+      syncLobby();
+      renderLobby();
+    });
+    lobbyMq.on('message', (topic, payload) => {
+      let msg = null;
+      try { msg = JSON.parse(payload.toString()); } catch (err) { return; }
+      if (!msg || !msg.n) return;
+      const nick = String(msg.n).trim().slice(0, 16);
+      const key = nick.toLowerCase();
+      if (!key) return;
+      if (msg.bye) lobbySeen.delete(key);
+      else lobbySeen.set(key, { nick: nick, at: Date.now() });
+      renderLobby();
+    });
+    lobbyMq.on('error', () => {
+      if (el.lobbyEmpty && !lobbySeen.size) el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+    });
+    setInterval(renderLobby, 3000);
+  }).catch(() => {
+    if (el.lobbyEmpty) el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+  });
+  setTimeout(() => {
+    if ((!lobbyMq || !lobbyMq.connected) && el.lobbyEmpty && !lobbySeen.size) {
+      el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+    }
+  }, 8000);
+}
+
 function armMatch() {
   if (!net || net.sentStart || net.arming || net.gotStart) return;
   net.arming = true;
   net.iAmHost = true;
+  syncLobby();
   net.due = performance.now() + 10000;
   showCount(10);
   sendNet({ t: 'arm', left: 10, nick: myNick });
@@ -1480,6 +1633,7 @@ function loadPeerJs() {
 function closeNet() {
   const current = net;
   net = null;
+  syncLobby();
   remoteNick = '';
   hideCount();
   if (!current) return;
@@ -1591,6 +1745,7 @@ function onNetGone() {
     syncBotPause();
     renderKeySummary();
     updateHud();
+    syncLobby();
     return;
   }
   if (was && running && screen === 'play') {
@@ -1607,6 +1762,7 @@ function onNetGone() {
   } else if (!running) {
     setNetLine('Не вдалося з’єднатися.');
   }
+  syncLobby();
 }
 
 function openNet() {
@@ -1621,6 +1777,7 @@ function openNet() {
         const conn = peer.connect(nickId(dial), { reliable: true });
         adoptConn(conn);
       }
+      syncLobby();
     });
     peer.on('connection', (conn) => adoptConn(conn));
     peer.on('error', (err) => {
@@ -1692,6 +1849,7 @@ function enterMatch(layout) {
   beginLevel(layout);
   syncBotPause();
   ensureLoop();
+  syncLobby();
 }
 
 function startGame() {
@@ -2813,6 +2971,8 @@ function runTests() {
 
 loadStore();
 fitCanvases();
+openLobby();
+if (el.nick) el.nick.addEventListener('input', renderLobby);
 window.__mmm = {
   dump: function () {
     return seat.grid.map(function (row) {
