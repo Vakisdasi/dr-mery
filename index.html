@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dr.mery</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23173a30'/><rect x='18' y='40' width='64' height='22' rx='11' fill='%23ff4b4b'/><rect x='50' y='40' width='32' height='22' rx='11' fill='%234c7dff'/></svg>">
+<style>
+  :root {
+    --bg: #10211c;
+    --bg2: #18352c;
+    --card: #17342c;
+    --line: #2f5c4c;
+    --cream: #f3f0e6;
+    --muted: #b7cfc3;
+    --gold: #ffd76a;
+    --red: #ff4b4b;
+    --blue: #4c7dff;
+    --yellow: #ffd34a;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    color: var(--cream);
+    background:
+      radial-gradient(900px 420px at 10% -10%, #245744 0%, transparent 55%),
+      radial-gradient(700px 380px at 110% 0%, #1d4a3c 0%, transparent 50%),
+      var(--bg);
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  kbd {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--line);
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    background: #10241d;
+    font-family: Consolas, monospace;
+    font-size: 0.92em;
+  }
+  #app { max-width: 1080px; margin: 0 auto; padding: 22px 16px 40px; }
+  h1 { margin: 0; font-size: 40px; letter-spacing: 0.04em; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  .card {
+    background: linear-gradient(180deg, #1c4036, var(--card));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+  }
+  #menu { max-width: 760px; }
+  .hero { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .hero svg { flex: 0 0 auto; }
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  label.block { display: block; margin-top: 14px; font-weight: 700; }
+  .hint { color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
+  input[type="range"] { width: 100%; accent-color: #3dbe78; margin-top: 8px; }
+  input[type="text"] {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #10241d;
+  }
+  .speeds, .pad { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .speeds button, .ghost, #start, #banner button, .pad button {
+    border: 1px solid var(--line);
+    background: #10241d;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  .speeds button[aria-pressed="true"], .pad button:hover, .ghost:hover, #start:hover, #banner button:hover {
+    border-color: #8fd9b0;
+    background: #1e4a3b;
+  }
+  #start {
+    margin-top: 16px;
+    background: #2f9e62;
+    border-color: #8ee0b0;
+    color: #062116;
+    font-weight: 800;
+    font-size: 18px;
+    padding: 10px 18px;
+  }
+  .howto { margin-top: 14px; color: var(--muted); line-height: 1.45; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--gold); }
+  table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  #play { position: relative; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .matchbar { width: min(980px, 100%); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .matchbar .who { min-width: 0; flex: 1; }
+  .matchbar .who.right { text-align: right; }
+  .vs { text-align: center; flex: 0 0 auto; }
+  .vs > b { display: block; font-size: 28px; color: var(--gold); letter-spacing: 0.06em; }
+  .vs .hint { white-space: nowrap; }
+  .boards { display: flex; gap: 56px; justify-content: center; flex-wrap: nowrap; align-items: flex-start; }
+  .seat-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-weight: 700; }
+  .crowns { color: var(--gold); letter-spacing: 0.12em; }
+  .panel { width: 230px; }
+  .panel h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .stat { display: flex; justify-content: space-between; margin: 4px 0; font-size: 18px; }
+  .stat b, .viruses b { font-family: Consolas, monospace; color: var(--gold); }
+  .viruses { list-style: none; padding: 0; margin: 8px 0 0; }
+  .viruses li { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .viruses i { width: 16px; height: 16px; border-radius: 50%; display: block; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25); }
+  .c0 { background: var(--red); }
+  .c1 { background: var(--blue); }
+  .c2 { background: var(--yellow); }
+  .viruses li.zero { opacity: 0.35; }
+  .flinch { animation: flinch 0.28s linear; }
+  @keyframes flinch {
+    25% { transform: translateX(-3px); }
+    50% { transform: translateX(3px); }
+    75% { transform: translateX(-2px); }
+  }
+  .meter { height: 8px; background: #0c1e18; border-radius: 99px; overflow: hidden; border: 1px solid var(--line); margin-top: 6px; }
+  .meter span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3dbe78, #ffd76a); }
+  .keys { color: var(--muted); line-height: 1.55; font-size: 14px; }
+  .bind-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0; }
+  .bind-row button {
+    min-width: 8.2em;
+    border: 1px solid var(--line);
+    background: #10241d;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-family: Consolas, monospace;
+  }
+  .bind-row button.arm { border-color: var(--gold); color: var(--gold); }
+  #keyOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(6, 16, 12, 0.78);
+  }
+  #keyOverlay .card { width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+  .board-wrap { position: relative; flex: 0 0 auto; }
+  .board-wrap .seat-label { margin-bottom: 6px; }
+  .board-wrap .preview { display: block; margin: 0 auto 8px; }
+  canvas { display: block; background: transparent; }
+  #board1 { cursor: pointer; }
+  .pad { justify-content: center; margin: 8px auto 0; }
+  .pad button { min-width: 52px; padding: 8px 12px; font-weight: 700; }
+  .keys { margin: 8px 0 0; }
+  #botPause { display: block; width: 100%; margin-top: 8px; }
+  #banner {
+    position: absolute;
+    inset: 0 0 52px 0;
+    display: grid;
+    place-items: center;
+    background: rgba(6, 18, 14, 0.78);
+    border-radius: 24px;
+    text-align: center;
+    padding: 16px;
+  }
+  #banner h3 { margin: 0 0 6px; font-size: 32px; }
+  #banner p { margin: 0 0 12px; color: var(--muted); }
+  #count {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(6, 16, 12, 0.82);
+    text-align: center;
+  }
+  #count b {
+    display: block;
+    margin: 8px 0;
+    font-size: 96px;
+    line-height: 1;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  #count p { margin: 0; font-size: 22px; }
+  #count p + p { margin-top: 8px; color: var(--muted); font-size: 18px; }
+  .banner-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #tests {
+    margin-top: 16px;
+    padding: 12px;
+    background: #07140f;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    font-family: Consolas, monospace;
+  }
+  #tests.bad { color: #ff8d8d; }
+  .src { margin-top: 16px; color: #8eaea2; font-size: 13px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="hero" id="hero">
+    <svg viewBox="0 0 120 140" width="92" height="108" aria-hidden="true">
+      <path d="M28 80 L60 66 L92 80 L100 132 H20 Z" fill="#f4f7f8"/>
+      <path d="M60 70 V132" stroke="#c5d0d4" stroke-width="3"/>
+      <rect x="48" y="60" width="24" height="14" rx="6" fill="#f0c9a0"/>
+      <circle cx="60" cy="48" r="24" fill="#f3d0a8"/>
+      <path d="M34 42 Q60 16 86 42 L78 36 Q60 18 42 36 Z" fill="#e8eef0"/>
+      <rect x="54" y="24" width="12" height="12" rx="2" fill="#218a52"/>
+      <rect x="58" y="26" width="4" height="8" fill="#fff"/>
+      <rect x="56" y="28" width="8" height="4" fill="#fff"/>
+      <circle cx="50" cy="48" r="8" fill="none" stroke="#243028" stroke-width="2.5"/>
+      <circle cx="70" cy="48" r="8" fill="none" stroke="#243028" stroke-width="2.5"/>
+      <path d="M58 48 H62" stroke="#243028" stroke-width="2.5"/>
+      <circle cx="50" cy="48" r="2.2" fill="#243028"/>
+      <circle cx="70" cy="48" r="2.2" fill="#243028"/>
+      <path d="M51 58 Q60 65 69 58" fill="none" stroke="#243028" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M30 88 Q14 104 24 116" fill="none" stroke="#f4f7f8" stroke-width="12" stroke-linecap="round"/>
+      <path d="M90 86 Q112 92 104 74" fill="none" stroke="#f4f7f8" stroke-width="12" stroke-linecap="round"/>
+      <rect x="96" y="62" width="22" height="11" rx="5.5" fill="#ff4b4b"/>
+      <rect x="107" y="62" width="11" height="11" rx="5.5" fill="#4c7dff"/>
+    </svg>
+    <div>
+      <h1>dr.mery</h1>
+      <p class="sub">Дві пляшки. Бот, друг поруч або хтось у мережі за ніком.</p>
+    </div>
+  </header>
+
+  <section id="menu" class="card">
+    <div class="row">
+      <label class="block" for="level" style="margin-top:0">Рівень вірусів <b id="levelNum">05</b></label>
+      <span>На старті: <b id="virusNum">24</b></span>
+    </div>
+    <input id="level" type="range" min="0" max="20" value="5">
+    <p class="hint">Рівень 0 — 4 віруси внизу пляшки. Рівень 20 — 84, майже під шийкою. Після 20 кількість уже не росте, рахунок переноситься.</p>
+
+    <div class="block">Швидкість</div>
+    <div class="speeds" id="speeds">
+      <button type="button" data-speed="low" aria-pressed="false">Повільно</button>
+      <button type="button" data-speed="med" aria-pressed="true">Середньо</button>
+      <button type="button" data-speed="hi" aria-pressed="false">Швидко</button>
+    </div>
+    <p class="hint">Швидкість задає і падіння, і очки. Кожні 10 капсул у рівні темп трохи зростає. Очки дають тільки знищені віруси.</p>
+
+    <label class="block" for="nick">Твій нік</label>
+    <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
+    <label class="block" for="rivalNick">Нік, з ким хочеш грати</label>
+    <input id="rivalNick" type="text" maxlength="16" placeholder="необов’язково">
+    <p class="hint" id="netHint">Напиши лише свій нік і грай із ботом. Хто при вході вкаже свій нік і твій, підсяде замість бота. Або одразу впиши чужий нік, якщо ця людина вже в грі. Щойно з’єднаєтесь, буде 10 секунд, і матч почнеться заново.</p>
+
+    <div class="block">Суперник</div>
+    <div class="speeds" id="rivals">
+      <button type="button" data-rival="bot" aria-pressed="true">Бот</button>
+      <button type="button" data-rival="human" aria-pressed="false">Друг поруч</button>
+    </div>
+    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Матч до трьох раундів.</p>
+
+    <div class="block">Звук</div>
+    <div class="speeds">
+      <button type="button" id="soundBtn" aria-pressed="true">Увімкнено</button>
+    </div>
+
+    <button type="button" id="start">Почати гру</button>
+    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
+    <p class="howto" id="keyBlurb"></p>
+    <p class="howto" id="keyBlurb2"></p>
+    <button type="button" class="ghost" id="openKeysMenu">Змінити клавіші</button>
+    <details>
+      <summary>Таблиця очок з інструкції NES</summary>
+      <p class="hint">Сума за всіх вірусів, знищених разом. Сьомий і далі рахуються як шість. Самі капсули очок не дають.</p>
+      <table>
+        <tr><th>Вірусів за раз</th><th>Повільно</th><th>Середньо</th><th>Швидко</th></tr>
+        <tr><td>1</td><td>100</td><td>200</td><td>300</td></tr>
+        <tr><td>2</td><td>200</td><td>400</td><td>600</td></tr>
+        <tr><td>3</td><td>400</td><td>800</td><td>1200</td></tr>
+        <tr><td>4</td><td>800</td><td>1600</td><td>2400</td></tr>
+        <tr><td>5</td><td>1600</td><td>3200</td><td>4800</td></tr>
+        <tr><td>6+</td><td>3200</td><td>6400</td><td>9600</td></tr>
+      </table>
+    </details>
+    <p class="src">Рекорд цієї гри на комп’ютері: <b id="menuBest">0</b></p>
+  </section>
+
+  <section id="play" hidden>
+    <div class="matchbar card">
+      <div class="who">
+        <div><b id="name0">Ти</b> <span class="crowns" id="crowns0">☆☆☆</span></div>
+        <div class="hint">Віруси <b id="left0">0</b> · очки <b id="score0">0</b></div>
+      </div>
+      <div class="vs">
+        <b id="roundScore">0 : 0</b>
+        <span class="hint">рівень <b id="hudLevel">0</b> · <span id="tempo">спокійно</span></span>
+        <span class="hint" id="netLine"></span>
+      </div>
+      <div class="who right">
+        <div><b id="name1">Бот</b> <span class="crowns" id="crowns1">☆☆☆</span></div>
+        <div class="hint">Віруси <b id="left1">0</b> · очки <b id="score1">0</b></div>
+      </div>
+    </div>
+    <div class="boards">
+      <div class="board-wrap">
+        <div class="seat-label"><span id="tag0">Ти</span></div>
+        <canvas id="next0" class="preview" width="160" height="72"></canvas>
+        <canvas id="board0" width="360" height="640"></canvas>
+        <div class="pad" id="pad">
+          <button type="button" data-act="left" tabindex="-1">←</button>
+          <button type="button" data-act="ccw" tabindex="-1">↺</button>
+          <button type="button" data-act="cw" tabindex="-1">↻</button>
+          <button type="button" data-act="right" tabindex="-1">→</button>
+          <button type="button" data-act="down" tabindex="-1">↓</button>
+          <button type="button" data-act="hard" tabindex="-1">вниз</button>
+        </div>
+      </div>
+      <div class="board-wrap">
+        <div class="seat-label"><span id="name1b">Бот</span></div>
+        <canvas id="next1" class="preview" width="160" height="72"></canvas>
+        <canvas id="board1" width="360" height="640"></canvas>
+        <button type="button" class="ghost" id="botPause">Пауза боту</button>
+        <p class="keys" id="keySummary"></p>
+      </div>
+    </div>
+    <div>
+      <button type="button" class="ghost" id="openKeysPlay">Змінити клавіші</button>
+      <button type="button" class="ghost" id="toMenu">В меню</button>
+    </div>
+    <div id="banner" hidden>
+      <div>
+        <h3 id="bannerTitle">Пауза</h3>
+        <p id="bannerText"></p>
+        <div class="banner-actions">
+          <button type="button" id="bannerMain">Далі</button>
+          <button type="button" id="bannerKeys" class="ghost">Клавіші</button>
+          <button type="button" id="bannerMenu" class="ghost" hidden>В меню</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div id="count" hidden>
+    <div>
+      <p id="countWho">Суперник уже тут</p>
+      <b id="countNum">10</b>
+      <p id="countNote">Матч почнеться з нуля.</p>
+    </div>
+  </div>
+  <div id="keyOverlay" hidden>
+    <div class="card">
+      <h2 style="margin-top:0">Клавіші</h2>
+      <div class="speeds" id="keyWho">
+        <button type="button" data-who="0" aria-pressed="true">Ти</button>
+        <button type="button" data-who="1" aria-pressed="false">Друг</button>
+      </div>
+      <p class="hint">Натисни дію, потім нову клавішу. Якщо вона вже зайнята, дії поміняються місцями. Esc скасовує вибір і закриває вікно. Під час гри Esc усе одно ставить паузу.</p>
+      <div id="keyList"></div>
+      <p class="hint" id="keyStatus"></p>
+      <div class="speeds">
+        <button type="button" id="closeKeys">Готово</button>
+        <button type="button" class="ghost" id="resetKeys">Стандартні</button>
+      </div>
+    </div>
+  </div>
+  <pre id="tests" hidden></pre>
+</div>
+<script>
+'use strict';
+
+const COLS = 8;
+const ROWS = 16;
+let CELL = 40;
+let OX = 18;
+let OY = 26;
+let W = OX * 2 + COLS * CELL;
+let H = OY + 14 + ROWS * CELL;
+let NW = 168;
+let NH = 76;
+const PAL = [
+  { main: '#ff4b4b', dark: '#b91c28', light: '#ffd0d0' },
+  { main: '#4c7dff', dark: '#1d4ed8', light: '#dbe6ff' },
+  { main: '#ffd34a', dark: '#c48a08', light: '#fff3c4' },
+];
+const BASE = { low: 720, med: 420, hi: 220 };
+const MINI = { low: 120, med: 75, hi: 48 };
+const SPEED_NAME = { low: 'Повільно', med: 'Середньо', hi: 'Швидко' };
+const POINTS = { low: 100, med: 200, hi: 300 };
+const ACTION_IDS = ['left', 'right', 'cw', 'ccw', 'soft', 'hard', 'pause'];
+const ACTION_LABEL = {
+  left: 'Ліворуч',
+  right: 'Праворуч',
+  cw: 'Поворот праворуч',
+  ccw: 'Поворот ліворуч',
+  soft: 'Швидше вниз',
+  hard: 'Скинути',
+  pause: 'Пауза',
+};
+const SUMMARY_LABEL = {
+  left: 'ліворуч',
+  right: 'праворуч',
+  cw: 'поворот праворуч',
+  ccw: 'поворот ліворуч',
+  soft: 'швидше',
+  hard: 'скинути',
+  pause: 'пауза',
+};
+const DEFAULT_BINDS = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  cw: 'ArrowUp',
+  ccw: 'KeyZ',
+  soft: 'ArrowDown',
+  hard: 'Space',
+  pause: 'KeyP',
+};
+const RESERVED_KEYS = new Set(['Escape', 'Tab', 'F5', 'F11', 'F12', 'MetaLeft', 'MetaRight']);
+
+let ctx = null;
+let nctx = null;
+let dpr = 1;
+let ndpr = 1;
+
+const el = {
+  hero: document.getElementById('hero'),
+  menu: document.getElementById('menu'),
+  play: document.getElementById('play'),
+  level: document.getElementById('level'),
+  levelNum: document.getElementById('levelNum'),
+  virusNum: document.getElementById('virusNum'),
+  speeds: document.getElementById('speeds'),
+  soundBtn: document.getElementById('soundBtn'),
+  start: document.getElementById('start'),
+  menuBest: document.getElementById('menuBest'),
+  hudLevel: document.getElementById('hudLevel'),
+  tempo: document.getElementById('tempo'),
+  nick: document.getElementById('nick'),
+  rivalNick: document.getElementById('rivalNick'),
+  netHint: document.getElementById('netHint'),
+  netLine: document.getElementById('netLine'),
+  tag0: document.getElementById('tag0'),
+  name0: document.getElementById('name0'),
+  name1: document.getElementById('name1'),
+  name1b: document.getElementById('name1b'),
+  crowns0: document.getElementById('crowns0'),
+  crowns1: document.getElementById('crowns1'),
+  left0: document.getElementById('left0'),
+  left1: document.getElementById('left1'),
+  score0: document.getElementById('score0'),
+  score1: document.getElementById('score1'),
+  roundScore: document.getElementById('roundScore'),
+  keyBlurb2: document.getElementById('keyBlurb2'),
+  banner: document.getElementById('banner'),
+  bannerTitle: document.getElementById('bannerTitle'),
+  bannerText: document.getElementById('bannerText'),
+  bannerMain: document.getElementById('bannerMain'),
+  bannerMenu: document.getElementById('bannerMenu'),
+  toMenu: document.getElementById('toMenu'),
+  keyBlurb: document.getElementById('keyBlurb'),
+  keySummary: document.getElementById('keySummary'),
+  keyList: document.getElementById('keyList'),
+  keyStatus: document.getElementById('keyStatus'),
+  keyOverlay: document.getElementById('keyOverlay'),
+  count: document.getElementById('count'),
+  countWho: document.getElementById('countWho'),
+  countNum: document.getElementById('countNum'),
+  countNote: document.getElementById('countNote'),
+};
+
+let running = false;
+let paused = false;
+let countLeft = 0;
+let bannerMode = '';
+let level = 5;
+let runStart = 5;
+let speed = 'med';
+let soundOn = true;
+let binds = Object.assign({}, DEFAULT_BINDS);
+let listening = null;
+const padHold = { left: false, right: false, soft: false };
+let score = 0;
+const P2_ACTIONS = ['left', 'right', 'cw', 'ccw', 'soft', 'hard'];
+const DEFAULT_BINDS_P2 = {
+  left: 'KeyA',
+  right: 'KeyD',
+  cw: 'KeyW',
+  ccw: 'KeyQ',
+  soft: 'KeyS',
+  hard: 'KeyE',
+};
+let screen = 'menu';
+let rival = 'bot';
+let myNick = '';
+let rivalNick = '';
+let remoteNick = '';
+let net = null;
+let netAcc = 0;
+let binds2 = Object.assign({}, DEFAULT_BINDS_P2);
+let listenWho = 0;
+let roundWinner = null;
+
+function createSeat(index, bot) {
+  return {
+    index: index,
+    bot: !!bot,
+    grid: emptyGrid(),
+    pill: null,
+    nextColors: { a: 0, b: 1 },
+    seq: 1,
+    phase: 'idle',
+    points: 0,
+    pills: 0,
+    dropInterval: BASE.med,
+    dropAcc: 0,
+    lockTimer: 0,
+    lockResets: 0,
+    clearSet: new Set(),
+    clearAge: 0,
+    gravAcc: 0,
+    shake: 0,
+    toast: null,
+    particles: [],
+    popups: [],
+    dasDir: 0,
+    das: 0,
+    dasOn: false,
+    garbage: [],
+    crowns: 0,
+    plan: null,
+    think: 0,
+    token: 1,
+    held: false,
+    remote: false,
+    sim: false,
+    simViruses: 0,
+    simLines: 0,
+    simWin: false,
+    simLose: false,
+  };
+}
+let seats = [createSeat(0, false), createSeat(1, true)];
+let seat = seats[0];
+
+function withSeat(next, fn) {
+  const prev = seat;
+  seat = next;
+  try { return fn(); } finally { seat = prev; }
+}
+
+function cloneGrid(source) {
+  return source.map((row) => row.map((cell) => cell ? { t: cell.t, c: cell.c, id: cell.id } : null));
+}
+
+function seatBinds() {
+  return seat.index === 0 ? binds : binds2;
+}
+let best = 0;
+let bestBefore = 0;
+let animTime = 0;
+let keys = new Set();
+let last = 0;
+let loopOn = false;
+let audioCtx = null;
+
+function emptyGrid() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+function loadStore() {
+  try {
+    best = Number(localStorage.getItem('dr-mmm-best') || 0) || 0;
+    const opts = JSON.parse(localStorage.getItem('dr-mmm-opts') || '{}');
+    if (opts.level >= 0 && opts.level <= 20) el.level.value = String(opts.level);
+    if (opts.speed && BASE[opts.speed]) speed = opts.speed;
+    if (typeof opts.sound === 'boolean') soundOn = opts.sound;
+    if (opts.rival === 'bot' || opts.rival === 'human') rival = opts.rival;
+    const nicks = JSON.parse(localStorage.getItem('dr-mmm-nicks') || '{}');
+    if (nicks.me && el.nick) el.nick.value = nicks.me;
+    if (nicks.rival && el.rivalNick) el.rivalNick.value = nicks.rival;
+  } catch (err) { /* приватний режим */ }
+  el.menuBest.textContent = String(best);
+  for (const btn of el.speeds.querySelectorAll('button')) {
+    btn.setAttribute('aria-pressed', btn.dataset.speed === speed ? 'true' : 'false');
+  }
+  el.soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  el.soundBtn.textContent = soundOn ? 'Увімкнено' : 'Вимкнено';
+  const rivals = document.getElementById('rivals');
+  if (rivals) {
+    for (const btn of rivals.querySelectorAll('button')) {
+      btn.setAttribute('aria-pressed', btn.dataset.rival === rival ? 'true' : 'false');
+    }
+  }
+  loadKeys();
+  refreshMenu();
+  renderBinds();
+}
+
+function saveOpts() {
+  try {
+    localStorage.setItem('dr-mmm-opts', JSON.stringify({
+      level: Number(el.level.value),
+      speed,
+      sound: soundOn,
+      rival,
+    }));
+  } catch (err) { /* нічого */ }
+}
+
+function refreshMenu() {
+  const lv = Number(el.level.value);
+  el.levelNum.textContent = String(lv).padStart(2, '0');
+  el.virusNum.textContent = String(Math.min(84, 4 * lv + 4));
+}
+
+function setText(node, text) {
+  if (node.textContent !== text) node.textContent = text;
+}
+
+function scoreFor(n) {
+  if (n <= 0) return 0;
+  const capped = Math.min(n, 6);
+  return POINTS[speed] * (1 << (capped - 1));
+}
+
+function virusCount() {
+  let n = 0;
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) if (seat.grid[y][x]?.t === 'v') n++;
+  }
+  return n;
+}
+
+function colorCounts() {
+  const n = [0, 0, 0];
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = seat.grid[y][x];
+      if (cell?.t === 'v') n[cell.c]++;
+    }
+  }
+  return n;
+}
+
+function cellsOf(x, y, rot) {
+  const r = ((rot % 4) + 4) % 4;
+  if (r === 0) return [{ x: x, y: y, k: 'a' }, { x: x + 1, y: y, k: 'b' }];
+  if (r === 1) return [{ x: x + 1, y: y - 1, k: 'a' }, { x: x + 1, y: y, k: 'b' }];
+  if (r === 2) return [{ x: x + 1, y: y, k: 'a' }, { x: x, y: y, k: 'b' }];
+  return [{ x: x, y: y, k: 'a' }, { x: x, y: y - 1, k: 'b' }];
+}
+
+function halfJoins(rot, k) {
+  const r = ((rot % 4) + 4) % 4;
+  if (r === 0) return k === 'a' ? { l: 0, r: 1, u: 0, d: 0 } : { l: 1, r: 0, u: 0, d: 0 };
+  if (r === 1) return k === 'a' ? { l: 0, r: 0, u: 0, d: 1 } : { l: 0, r: 0, u: 1, d: 0 };
+  if (r === 2) return k === 'a' ? { l: 1, r: 0, u: 0, d: 0 } : { l: 0, r: 1, u: 0, d: 0 };
+  return k === 'a' ? { l: 0, r: 0, u: 1, d: 0 } : { l: 0, r: 0, u: 0, d: 1 };
+}
+
+function classify(x, y, rot) {
+  let wall = false;
+  let block = false;
+  let floor = false;
+  for (const c of cellsOf(x, y, rot)) {
+    if (c.x < 0 || c.x >= COLS) wall = true;
+    else if (c.y >= ROWS) floor = true;
+    else if (c.y >= 0 && seat.grid[c.y][c.x]) block = true;
+  }
+  return { wall, block, floor, ok: !wall && !block && !floor };
+}
+
+function lineCount(x, y, c, dx, dy) {
+  let n = 1;
+  for (let s = -1; s <= 1; s += 2) {
+    for (let i = 1; i < COLS; i++) {
+      const xx = x + dx * i * s;
+      const yy = y + dy * i * s;
+      if (xx < 0 || yy < 0 || xx >= COLS || yy >= ROWS) break;
+      const cell = seat.grid[yy][xx];
+      if (!cell || cell.c !== c) break;
+      n++;
+    }
+  }
+  return n;
+}
+
+function makesFour(x, y, c) {
+  return lineCount(x, y, c, 1, 0) >= 4 || lineCount(x, y, c, 0, 1) >= 4;
+}
+
+function findClearSet() {
+  const mark = new Set();
+  for (let y = 0; y < ROWS; y++) {
+    let x = 0;
+    while (x < COLS) {
+      const cell = seat.grid[y][x];
+      if (!cell) { x++; continue; }
+      let x2 = x + 1;
+      while (x2 < COLS && seat.grid[y][x2] && seat.grid[y][x2].c === cell.c) x2++;
+      if (x2 - x >= 4) {
+        for (let i = x; i < x2; i++) mark.add(i + ',' + y);
+      }
+      x = x2;
+    }
+  }
+  for (let x = 0; x < COLS; x++) {
+    let y = 0;
+    while (y < ROWS) {
+      const cell = seat.grid[y][x];
+      if (!cell) { y++; continue; }
+      let y2 = y + 1;
+      while (y2 < ROWS && seat.grid[y2][x] && seat.grid[y2][x].c === cell.c) y2++;
+      if (y2 - y >= 4) {
+        for (let i = y; i < y2; i++) mark.add(x + ',' + i);
+      }
+      y = y2;
+    }
+  }
+  return mark;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+  }
+  return arr;
+}
+
+function placeViruses(count) {
+  const top = Math.max(3, Math.round(11 - level * 0.45));
+  const spots = [];
+  for (let y = top; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) spots.push([x, y]);
+  }
+  shuffle(spots);
+  const bag = [];
+  for (let i = 0; i < count; i++) bag.push(i % 3);
+  shuffle(bag);
+  const open = spots.slice();
+  for (const c of bag) {
+    let idx = open.findIndex(([x, y]) => !seat.grid[y][x] && !makesFour(x, y, c));
+    if (idx < 0) idx = open.findIndex(([x, y]) => !seat.grid[y][x] && !makesFour(x, y, bestColor(x, y)));
+    if (idx < 0) idx = open.findIndex(([x, y]) => !seat.grid[y][x]);
+    if (idx < 0) break;
+    const [x, y] = open[idx];
+    const color = makesFour(x, y, c) ? bestColor(x, y) : c;
+    seat.grid[y][x] = { t: 'v', c: color };
+    open.splice(idx, 1);
+  }
+}
+
+function bestColor(x, y) {
+  let best = 0;
+  let bestN = 99;
+  for (let c = 0; c < 3; c++) {
+    const n = lineCount(x, y, c, 1, 0) + lineCount(x, y, c, 0, 1);
+    if (n < bestN) { bestN = n; best = c; }
+  }
+  return best;
+}
+
+function fixInitialMatches() {
+  for (let guard = 0; guard < 400; guard++) {
+    const set = findClearSet();
+    if (!set.size) return;
+    let fixed = false;
+    for (const key of set) {
+      const parts = key.split(',');
+      const x = Number(parts[0]);
+      const y = Number(parts[1]);
+      const prev = seat.grid[y][x].c;
+      for (let c = 0; c < 3; c++) {
+        seat.grid[y][x].c = c;
+        if (!makesFour(x, y, c) && findClearSet().size === 0) { fixed = true; break; }
+      }
+      if (fixed) break;
+      seat.grid[y][x].c = prev;
+    }
+    if (!fixed) {
+      const first = set.values().next().value.split(',');
+      seat.grid[Number(first[1])][Number(first[0])] = null;
+    }
+  }
+}
+
+function analyze() {
+  const groups = new Map();
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = seat.grid[y][x];
+      if (!cell || cell.t !== 'p') continue;
+      if (!groups.has(cell.id)) groups.set(cell.id, []);
+      groups.get(cell.id).push({ x, y, cell });
+    }
+  }
+  const deps = new Map();
+  const grounded = new Set();
+  for (const [id, members] of groups) {
+    const d = new Set();
+    let ground = false;
+    for (const m of members) {
+      if (m.y >= ROWS - 1) { ground = true; continue; }
+      const below = seat.grid[m.y + 1][m.x];
+      if (!below) continue;
+      if (below.t === 'v') { ground = true; continue; }
+      if (below.id !== id) d.add(below.id);
+    }
+    deps.set(id, d);
+    if (ground) grounded.add(id);
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [id, d] of deps) {
+      if (grounded.has(id)) continue;
+      for (const other of d) {
+        if (grounded.has(other)) {
+          grounded.add(id);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+  const floatingIds = new Set();
+  for (const id of groups.keys()) {
+    if (!grounded.has(id)) floatingIds.add(id);
+  }
+  return { groups, floatingIds };
+}
+
+function hasFloating() {
+  return analyze().floatingIds.size > 0;
+}
+
+function gravityStep() {
+  const { groups, floatingIds } = analyze();
+  if (!floatingIds.size) return false;
+  const moving = [];
+  const from = new Set();
+  for (const id of floatingIds) {
+    const members = groups.get(id);
+    moving.push(members);
+    for (const m of members) from.add(m.x + ',' + m.y);
+  }
+  const safe = [];
+  for (const members of moving) {
+    let ok = true;
+    for (const m of members) {
+      if (m.y + 1 >= ROWS) { ok = false; break; }
+      const occ = seat.grid[m.y + 1][m.x];
+      if (occ && !from.has(m.x + ',' + (m.y + 1))) { ok = false; break; }
+    }
+    if (ok) safe.push(members);
+  }
+  if (!safe.length) return false;
+  for (const members of safe) {
+    for (const m of members) seat.grid[m.y][m.x] = null;
+  }
+  for (const members of safe) {
+    for (const m of members) seat.grid[m.y + 1][m.x] = m.cell;
+  }
+  return true;
+}
+
+function makeColors() {
+  const types = [[0, 0], [1, 1], [2, 2], [0, 1], [0, 2], [1, 2]];
+  const t = types[Math.floor(Math.random() * types.length)];
+  if (t[0] !== t[1] && Math.random() < 0.5) return { a: t[1], b: t[0] };
+  return { a: t[0], b: t[1] };
+}
+
+function tryRotate(dir) {
+  if (!seat.pill || seat.phase !== 'control' || paused) return false;
+  const p = seat.pill;
+  const rot = (p.rot + (dir < 0 ? 1 : 3)) & 3;
+  const primary = classify(p.x, p.y, rot);
+  let x = p.x;
+  if (!primary.ok) {
+    if (primary.block || primary.floor) return false;
+    const kicked = [-1, 1].find((dx) => classify(p.x + dx, p.y, rot).ok);
+    if (kicked === undefined) return false;
+    x = p.x + kicked;
+  }
+  seat.pill.x = x;
+  seat.pill.rot = rot;
+  nudgeLock();
+  sfx('rotate');
+  return true;
+}
+
+function tryMoveX(dir) {
+  if (!seat.pill || seat.phase !== 'control' || paused) return false;
+  if (!classify(seat.pill.x + dir, seat.pill.y, seat.pill.rot).ok) return false;
+  seat.pill.x += dir;
+  nudgeLock();
+  return true;
+}
+
+function nudgeLock() {
+  if (!seat.pill) return;
+  if (!classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) {
+    if (seat.lockResets < 14) {
+      seat.lockTimer = 0;
+      seat.lockResets++;
+    }
+  } else {
+    seat.lockTimer = 0;
+    seat.lockResets = 0;
+  }
+}
+
+function hardDrop() {
+  if (!seat.pill || seat.phase !== 'control' || paused) return;
+  let guard = 0;
+  while (guard++ < 20 && classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) seat.pill.y++;
+  lockPill();
+}
+
+function lineInfo(set) {
+  let lines = 0;
+  const colors = [];
+  for (let y = 0; y < ROWS; y++) {
+    let x = 0;
+    while (x < COLS) {
+      if (!set.has(x + ',' + y) || !seat.grid[y][x]) { x++; continue; }
+      const c = seat.grid[y][x].c;
+      let x2 = x + 1;
+      while (x2 < COLS && set.has(x2 + ',' + y) && seat.grid[y][x2] && seat.grid[y][x2].c === c) x2++;
+      if (x2 - x >= 4) { lines++; colors.push(c); }
+      x = x2;
+    }
+  }
+  for (let x = 0; x < COLS; x++) {
+    let y = 0;
+    while (y < ROWS) {
+      if (!set.has(x + ',' + y) || !seat.grid[y][x]) { y++; continue; }
+      const c = seat.grid[y][x].c;
+      let y2 = y + 1;
+      while (y2 < ROWS && set.has(x + ',' + y2) && seat.grid[y2][x] && seat.grid[y2][x].c === c) y2++;
+      if (y2 - y >= 4) { lines++; colors.push(c); }
+      y = y2;
+    }
+  }
+  return { lines, colors };
+}
+
+function sendGarbage(lines, colors) {
+  if (seat.sim || lines < 2 || !colors.length || screen !== 'play') return;
+  const opp = seats[1 - seat.index];
+  const n = Math.min(lines, 4);
+  const picked = [];
+  for (let i = 0; i < n; i++) picked.push(colors[i % colors.length]);
+  if (net && net.live && seat.index === 0) {
+    sendNet({ t: 'junk', colors: picked });
+    return;
+  }
+  for (const c of picked) opp.garbage.push(c);
+  opp.toast = { text: 'Атака +' + n, age: 0 };
+}
+
+function lockPill() {
+  if (!seat.pill || seat.phase !== 'control') return;
+  if (!seat.sim && cellsOf(seat.pill.x, seat.pill.y, seat.pill.rot).some((c) => c.y < 0)) {
+    if (classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) {
+      seat.pill.y++;
+      return;
+    }
+    beginOver();
+    return;
+  }
+  const id = seat.seq++;
+  for (const c of cellsOf(seat.pill.x, seat.pill.y, seat.pill.rot)) {
+    if (c.y < 0) continue;
+    seat.grid[c.y][c.x] = { t: 'p', c: c.k === 'a' ? seat.pill.a : seat.pill.b, id };
+  }
+  const landY = seat.pill.y;
+  seat.pill = null;
+  if (seat.sim) {
+    let guard = 0;
+    while (guard++ < 40) {
+      const set = findClearSet();
+      if (set.size) {
+        const info = lineInfo(set);
+        seat.simLines += info.lines;
+        for (const key of set) {
+          const parts = key.split(',');
+          const x = Number(parts[0]);
+          const y = Number(parts[1]);
+          if (seat.grid[y][x] && seat.grid[y][x].t === 'v') seat.simViruses++;
+          seat.grid[y][x] = null;
+        }
+        while (gravityStep()) {}
+        continue;
+      }
+      if (!gravityStep()) break;
+    }
+    if (virusCount() === 0) seat.simWin = true;
+    if (seat.grid[0][3] || seat.grid[0][4]) seat.simLose = true;
+    seat.landY = landY;
+    return;
+  }
+  sfx('lock');
+  seat.pills++;
+  if (seat.pills > 0 && seat.pills % 10 === 0) speedUp();
+  const set = findClearSet();
+  if (set.size) beginClear(set);
+  else if (hasFloating()) { seat.phase = 'grav'; seat.gravAcc = 0; }
+  else if (virusCount() === 0) beginWin();
+  else spawn();
+}
+
+function speedUp() {
+  seat.dropInterval = Math.max(MINI[speed], Math.round(seat.dropInterval * 0.86));
+  seat.toast = { text: 'Швидше!', age: 0 };
+  sfx('chime');
+}
+
+function beginClear(set) {
+  seat.phase = 'clear';
+  seat.clearSet = set;
+  seat.clearAge = 0;
+  let viruses = 0;
+  const seen = new Set();
+  for (const key of set) {
+    const parts = key.split(',');
+    const cell = seat.grid[Number(parts[1])][Number(parts[0])];
+    if (cell?.t === 'v') {
+      viruses++;
+      seen.add(cell.c);
+    }
+  }
+  const info = lineInfo(set);
+  seat.clearSet.viruses = viruses;
+  seat.clearSet.colors = seen;
+  seat.clearSet.lines = info.lines;
+  seat.clearSet.lineColors = info.colors;
+  if (viruses >= 2 || info.lines >= 2) seat.shake = 1;
+  sfx(viruses ? 'clear' : 'pop');
+}
+
+function finishClear() {
+  let sx = 0;
+  let sy = 0;
+  let n = 0;
+  sendGarbage(seat.clearSet.lines || 0, seat.clearSet.lineColors || []);
+  const colors = seat.clearSet.colors || new Set();
+  for (const key of seat.clearSet) {
+    const parts = key.split(',');
+    const x = Number(parts[0]);
+    const y = Number(parts[1]);
+    const cell = seat.grid[y][x];
+    if (cell?.t === 'v') burst(x, y, cell.c);
+    sx += x;
+    sy += y;
+    n++;
+    seat.grid[y][x] = null;
+  }
+  const pts = scoreFor(seat.clearSet.viruses || 0);
+  if (pts) {
+    addScore(pts);
+    seat.popups.push({
+      x: OX + (sx / n + 0.5) * CELL,
+      y: OY + (sy / n) * CELL,
+      text: '+' + pts,
+      age: 0,
+    });
+  }
+  for (const c of colors) flinch(c);
+  seat.clearSet = new Set();
+  if (hasFloating()) { seat.phase = 'grav'; seat.gravAcc = 0; }
+  else afterSettle();
+}
+
+function afterSettle() {
+  const set = findClearSet();
+  if (set.size) { beginClear(set); return; }
+  if (virusCount() === 0) { beginWin(); return; }
+  spawn();
+}
+
+function garbageColumns(n) {
+  const patterns = {
+    1: [[2], [3], [4], [5], [1], [6]],
+    2: [[0, 4], [1, 5], [2, 6], [3, 7]],
+    3: [[0, 3, 6], [1, 4, 7], [0, 2, 5], [2, 4, 6]],
+    4: [[0, 2, 4, 6], [1, 3, 5, 7]],
+  };
+  const list = patterns[Math.min(n, 4)];
+  return list[Math.floor(Math.random() * list.length)].slice(0, n);
+}
+
+function dropGarbage() {
+  if (!seat.garbage.length) return false;
+  const cols = garbageColumns(seat.garbage.length);
+  let placed = false;
+  const used = new Set();
+  seat.garbage.forEach((color, i) => {
+    let x = cols[i];
+    if (x === undefined || seat.grid[0][x] || used.has(x)) {
+      const alt = [x - 1, x + 1, x - 2, x + 2, 0, 1, 2, 3, 4, 5, 6, 7].find((xx) => xx >= 0 && xx < COLS && !seat.grid[0][xx] && !used.has(xx));
+      if (alt === undefined) return;
+      x = alt;
+    }
+    used.add(x);
+    seat.grid[0][x] = { t: 'p', c: color, id: seat.seq++ };
+    placed = true;
+  });
+  seat.garbage = [];
+  return placed;
+}
+
+function spawn() {
+  if (seat.sim) return;
+  if (dropGarbage()) {
+    seat.phase = 'grav';
+    seat.gravAcc = 0;
+    seat.token++;
+    return;
+  }
+  if (seat.grid[0][3] || seat.grid[0][4]) { beginOver(); return; }
+  seat.pill = { x: 3, y: 0, rot: 0, a: seat.nextColors.a, b: seat.nextColors.b };
+  seat.token++;
+  seat.plan = null;
+  seat.nextColors = makeColors();
+  seat.dropAcc = 0;
+  seat.lockTimer = 0;
+  seat.lockResets = 0;
+  if (!classify(seat.pill.x, seat.pill.y, seat.pill.rot).ok) {
+    seat.pill = null;
+    beginOver();
+    return;
+  }
+  seat.phase = 'control';
+}
+
+function blankSeat(s) {
+  s.grid = emptyGrid();
+  s.pill = null;
+  s.seq = 1;
+  s.pills = 0;
+  s.dropInterval = BASE[speed];
+  s.dropAcc = 0;
+  s.lockTimer = 0;
+  s.lockResets = 0;
+  s.clearSet = new Set();
+  s.clearAge = 0;
+  s.gravAcc = 0;
+  s.shake = 0;
+  s.toast = null;
+  s.particles = [];
+  s.popups = [];
+  s.dasDir = 0;
+  s.das = 0;
+  s.dasOn = false;
+  s.garbage = [];
+  s.plan = null;
+  s.think = 0;
+  s.sim = false;
+  s.simViruses = 0;
+  s.simLines = 0;
+  s.simWin = false;
+  s.simLose = false;
+  s.token = (s.token || 0) + 1;
+  s.phase = 'idle';
+}
+
+function makeLayout() {
+  const proto = createSeat(9, false);
+  withSeat(proto, () => {
+    proto.grid = emptyGrid();
+    placeViruses(Math.min(84, 4 * level + 4));
+    fixInitialMatches();
+  });
+  return proto.grid;
+}
+
+function beginLevel(ready) {
+  screen = 'play';
+  const layout = ready || makeLayout();
+  for (const s of seats) {
+    const remote = s.remote;
+    blankSeat(s);
+    s.remote = remote;
+    s.grid = cloneGrid(layout);
+    s.nextColors = makeColors();
+    if (s.remote) {
+      s.bot = false;
+      s.pill = null;
+      s.phase = 'idle';
+    } else {
+      withSeat(s, () => spawn());
+    }
+  }
+  syncBanner();
+  updateHud();
+  renderKeySummary();
+}
+
+function finishRound(winner, silent) {
+  if (screen !== 'play') return;
+  winner.crowns += 1;
+  roundWinner = winner;
+  screen = winner.crowns >= 3 ? 'match' : 'round';
+  seats.forEach((s) => { s.pill = null; s.phase = 'done'; });
+  sfx(winner.index === 0 ? 'win' : 'over');
+  if (!silent && net && net.live) sendNet({ t: 'end', winner: winner.index === 0 ? 'me' : 'you' });
+  syncBanner();
+  updateHud();
+}
+
+function beginWin() {
+  if (seat.sim) { seat.simWin = true; return; }
+  finishRound(seat);
+}
+
+function beginOver() {
+  if (seat.sim) { seat.simLose = true; return; }
+  finishRound(seats[1 - seat.index]);
+}
+
+function nextRound() {
+  if (screen === 'match') {
+    if (net && net.live && !net.iAmHost) { sendNet({ t: 'again' }); return; }
+    startGame();
+    return;
+  }
+  if (screen !== 'round') return;
+  if (net && net.live) {
+    if (!net.iAmHost) { sendNet({ t: 'next-please' }); return; }
+    level += 1;
+    const layout = makeLayout();
+    sendNet({ t: 'next', level: level, grid: packGrid(layout) });
+    beginLevel(layout);
+    return;
+  }
+  level += 1;
+  beginLevel();
+}
+
+function addScore(v) {
+  if (seat.sim) return;
+  seat.points += v;
+  if (seat.index !== 0) return;
+  score = seat.points;
+  if (score > best) {
+    best = score;
+    try { localStorage.setItem('dr-mmm-best', String(best)); } catch (err) { /* нічого */ }
+    el.menuBest.textContent = String(best);
+  }
+}
+
+function flinch() {
+  if (!seat || seat.sim) return;
+  const node = el['left' + seat.index];
+  if (!node) return;
+  node.classList.remove('flinch');
+  void node.offsetWidth;
+  node.classList.add('flinch');
+}
+
+function crownText(n) {
+  return '★'.repeat(n) + '☆'.repeat(Math.max(0, 3 - n));
+}
+
+function updateHud() {
+  const prev = seat;
+  seats.forEach((s) => {
+    seat = s;
+    setText(el['left' + s.index], String(virusCount()));
+    setText(el['score' + s.index], String(s.points));
+    setText(el['crowns' + s.index], crownText(s.crowns));
+  });
+  seat = prev;
+  setText(el.roundScore, seats[0].crowns + ' : ' + seats[1].crowns);
+  setText(el.hudLevel, String(level));
+  const span = BASE[speed] - MINI[speed];
+  const heat = span <= 0 ? 0 : (BASE[speed] - seats[0].dropInterval) / span;
+  setText(el.tempo, heat < 0.34 ? 'спокійно' : heat < 0.67 ? 'жваво' : 'гаряче');
+  const me = myNick || 'Ти';
+  setText(el.name0, me);
+  setText(el.tag0, me);
+  let rivalName = 'Друг';
+  if (seats[1].remote) rivalName = remoteNick || rivalNick || 'Гравець';
+  else if (seats[1].bot) rivalName = 'Бот';
+  setText(el.name1, rivalName);
+  setText(el.name1b, rivalName);
+}
+
+function syncBanner() {
+  let mode = '';
+  if (countLeft > 0) mode = '';
+  else if (running && screen === 'match') mode = 'match';
+  else if (running && screen === 'round') mode = 'round';
+  else if (running && paused && screen === 'play') mode = 'pause';
+  const same = mode === bannerMode;
+  bannerMode = mode;
+  el.banner.hidden = mode === '';
+  el.bannerMenu.hidden = mode === 'pause' || mode === '';
+  if (same) return;
+  const mine = roundWinner && roundWinner.index === 0;
+  if (mode === 'pause') {
+    el.bannerTitle.textContent = 'Пауза';
+    el.bannerText.textContent = 'Обидві пляшки чекають.';
+    el.bannerMain.textContent = 'Далі';
+  } else if (mode === 'round') {
+    el.bannerTitle.textContent = mine ? 'Раунд твій' : 'Раунд за суперником';
+    el.bannerText.textContent = seats[0].crowns + ' : ' + seats[1].crowns + ' до трьох.';
+    el.bannerMain.textContent = 'Наступний раунд';
+  } else if (mode === 'match') {
+    el.bannerTitle.textContent = mine ? 'Матч твій' : 'Матч за суперником';
+    el.bannerText.textContent = 'Твої очки ' + seats[0].points + (seats[0].points > bestBefore && seats[0].points > 0 ? '. Це новий рекорд.' : '.');
+    el.bannerMain.textContent = 'Ще раз';
+  }
+}
+
+function togglePause() {
+  if (countLeft > 0) return;
+  if (!running || screen !== 'play') return;
+  paused = !paused;
+  if (paused) {
+    keys.clear();
+    padHold.left = false;
+    padHold.right = false;
+    padHold.soft = false;
+    seats.forEach((s) => { s.dasDir = 0; s.das = 0; s.dasOn = false; });
+  }
+  syncBanner();
+}
+
+function goMenu() {
+  closeKeys();
+  running = false;
+  paused = false;
+  screen = 'menu';
+  el.play.hidden = true;
+  el.hero.hidden = false;
+  el.menu.hidden = false;
+  el.banner.hidden = true;
+  bannerMode = '';
+  closeNet();
+  el.menuBest.textContent = String(best);
+  el.start.focus();
+}
+
+function nickId(nick) {
+  const s = 'mery:' + nick.trim().toLowerCase();
+  let h1 = 2166136261;
+  let h2 = 2166136261 ^ 0x9e3779b9;
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    h1 ^= code;
+    h1 = Math.imul(h1, 16777619);
+    h2 ^= code + i;
+    h2 = Math.imul(h2, 2246822519);
+  }
+  const hex = (n) => (n >>> 0).toString(16).padStart(8, '0');
+  return 'mery' + hex(h1) + hex(h2);
+}
+
+function decideHost(myName, myDial, theirName, theirDial) {
+  if (!myDial) return true;
+  if (!theirDial) return false;
+  return nickId(myName) < nickId(theirName);
+}
+
+function setNetLine(text) {
+  if (el.netLine) el.netLine.textContent = text || '';
+  if (!el.netHint) return;
+  if (!el.netHint.dataset.rest) el.netHint.dataset.rest = el.netHint.textContent;
+  el.netHint.textContent = text && !running ? text : el.netHint.dataset.rest;
+}
+
+function showCount(left) {
+  const n = Math.max(1, Math.round(Number(left) || 0));
+  const changed = n !== countLeft;
+  countLeft = n;
+  const name = remoteNick || rivalNick || 'Суперник';
+  if (el.countWho) el.countWho.textContent = '«' + name + '» уже тут';
+  if (el.countNum) el.countNum.textContent = String(n);
+  if (el.countNote) el.countNote.textContent = 'Матч почнеться з нуля.';
+  if (el.count) el.count.hidden = false;
+  setNetLine('«' + name + '» заходить. Старт через ' + n + '.');
+  if (running && !paused) {
+    paused = true;
+    keys.clear();
+    padHold.left = false;
+    padHold.right = false;
+    padHold.soft = false;
+    seats.forEach((s) => { s.dasDir = 0; s.das = 0; s.dasOn = false; });
+    if (net) net.froze = true;
+  }
+  syncBanner();
+  if (changed) {
+    ensureAudio();
+    tone(n === 1 ? 660 : 440, 0.07, 'square', 0.05);
+  }
+}
+
+function hideCount() {
+  countLeft = 0;
+  if (el.count) el.count.hidden = true;
+}
+
+function stopCount(resume) {
+  if (net) {
+    if (net.armTimer) clearInterval(net.armTimer);
+    net.armTimer = 0;
+    net.arming = false;
+    net.countLeft = 0;
+    net.froze = false;
+  }
+  hideCount();
+  if (resume && paused) {
+    paused = false;
+    syncBanner();
+  }
+}
+
+function armMatch() {
+  if (!net || net.sentStart || net.arming || net.gotStart) return;
+  net.arming = true;
+  net.iAmHost = true;
+  net.due = performance.now() + 10000;
+  showCount(10);
+  sendNet({ t: 'arm', left: 10, nick: myNick });
+  net.armTimer = setInterval(() => {
+    if (!net || !net.arming) return;
+    const left = Math.ceil((net.due - performance.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(net.armTimer);
+      net.armTimer = 0;
+      sendStart();
+      return;
+    }
+    if (left !== countLeft) {
+      net.countLeft = left;
+      showCount(left);
+      sendNet({ t: 'tick', left: left, nick: myNick });
+    }
+  }, 200);
+}
+
+function packGrid(grid) {
+  const cells = [];
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const c = grid[y][x];
+      if (c) cells.push([x, y, c.t, c.c, c.id || 0]);
+    }
+  }
+  return cells;
+}
+
+function unpackGrid(cells) {
+  const grid = emptyGrid();
+  if (!cells) return grid;
+  for (const item of cells) {
+    grid[item[1]][item[0]] = { t: item[2], c: item[3], id: item[4] };
+  }
+  return grid;
+}
+
+function sendNet(msg) {
+  if (!net || !net.live || !net.live.open) return;
+  try { net.live.send(msg); } catch (err) { /* канал закрився */ }
+}
+
+function loadPeerJs() {
+  if (window.Peer) return Promise.resolve();
+  if (net && net.loading) return net.loading;
+  const loading = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('peer'));
+    document.head.appendChild(script);
+  });
+  return loading;
+}
+
+function closeNet() {
+  const current = net;
+  net = null;
+  remoteNick = '';
+  hideCount();
+  if (!current) return;
+  if (current.armTimer) clearInterval(current.armTimer);
+  try { if (current.live) current.live.close(); } catch (err) { /* нічого */ }
+  try { if (current.peer) current.peer.destroy(); } catch (err) { /* нічого */ }
+  if (seats[1]) seats[1].remote = false;
+}
+
+function sendStart() {
+  if (!net || net.sentStart) return;
+  net.sentStart = true;
+  net.arming = false;
+  net.iAmHost = true;
+  level = Number(el.level.value);
+  const layout = makeLayout();
+  hideCount();
+  sendNet({ t: 'start', level: level, speed: speed, grid: packGrid(layout), nick: myNick });
+  enterMatch(layout);
+  setNetLine('Граєш з «' + (remoteNick || rivalNick || 'суперником') + '».');
+}
+
+function applyRemoteState(msg) {
+  if (screen !== 'play') return;
+  const far = seats[1];
+  far.grid = unpackGrid(msg.g);
+  far.pill = msg.p || null;
+  if (msg.n) far.nextColors = msg.n;
+  far.points = msg.pts || 0;
+  far.phase = far.pill ? 'control' : 'idle';
+  far.remote = true;
+  far.bot = false;
+}
+
+function onNetData(msg) {
+  if (!msg || !msg.t) return;
+  if (msg.t === 'hi') {
+    remoteNick = msg.nick || remoteNick;
+    updateHud();
+    if (decideHost(myNick, rivalNick, remoteNick, msg.dial || '') && !net.sentStart && !net.gotStart && !net.arming) armMatch();
+    else if (net.arming) showCount(net.countLeft || countLeft || 10);
+    else if (net.sentStart && remoteNick) setNetLine('Граєш з «' + remoteNick + '».');
+    return;
+  }
+  if (msg.t === 'arm' || msg.t === 'tick') {
+    if (msg.nick) remoteNick = msg.nick;
+    if (net.gotStart || net.sentStart) return;
+    showCount(msg.left);
+    updateHud();
+    return;
+  }
+  if (msg.t === 'start' || msg.t === 'next') {
+    if (msg.t === 'start' && (net.gotStart || net.sentStart)) return;
+    if (msg.t === 'next' && screen !== 'round') return;
+    if (msg.nick) remoteNick = msg.nick;
+    hideCount();
+    net.gotStart = true;
+    net.iAmHost = false;
+    level = msg.level;
+    if (msg.speed && BASE[msg.speed]) speed = msg.speed;
+    const layout = unpackGrid(msg.grid);
+    if (msg.t === 'start') enterMatch(layout);
+    else beginLevel(layout);
+    setNetLine('Граєш з «' + (remoteNick || rivalNick) + '».');
+    return;
+  }
+  if (msg.t === 's') { applyRemoteState(msg); return; }
+  if (msg.t === 'junk' && screen === 'play' && msg.colors) {
+    for (const c of msg.colors) seats[0].garbage.push(c);
+    seats[0].toast = { text: 'Атака +' + msg.colors.length, age: 0 };
+    return;
+  }
+  if (msg.t === 'end' && screen === 'play') {
+    finishRound(msg.winner === 'me' ? seats[1] : seats[0], true);
+    return;
+  }
+  if (msg.t === 'next-please' && net.iAmHost && screen === 'round') nextRound();
+  if (msg.t === 'again' && net.iAmHost && screen === 'match') startGame();
+}
+
+function slugReady(nick) {
+  return !!(nick && nick.trim());
+}
+
+function adoptConn(conn) {
+  conn.on('open', () => {
+    if (!net) return;
+    if (net.live && net.live !== conn) { conn.close(); return; }
+    net.live = conn;
+    sendNet({ t: 'hi', nick: myNick, dial: rivalNick });
+    if (!rivalNick) armMatch();
+    else if (!countLeft) setNetLine('З’єднано. Чекаю поле від «' + rivalNick + '»…');
+  });
+  conn.on('data', onNetData);
+  conn.on('close', onNetGone);
+  conn.on('error', onNetGone);
+}
+
+function onNetGone() {
+  if (!net || !net.live) return;
+  const arming = !!(net.arming && !net.sentStart);
+  const froze = !!net.froze;
+  net.live = null;
+  stopCount(arming && froze);
+  const was = seats[1].remote;
+  seats[1].remote = false;
+  if (arming && running) {
+    setNetLine('«' + (remoteNick || 'Суперник') + '» не встиг зайти. Далі грає бот.');
+    syncBotPause();
+    renderKeySummary();
+    updateHud();
+    return;
+  }
+  if (was && running && screen === 'play') {
+    seats[1].bot = true;
+    seats[1].held = false;
+    if (!seats[1].pill && (seats[1].phase === 'idle' || seats[1].phase === 'done')) {
+      withSeat(seats[1], () => spawn());
+    }
+    seats[0].toast = { text: 'Суперник вийшов', age: 0 };
+    setNetLine('«' + (remoteNick || rivalNick) + '» вийшов. Далі грає бот.');
+    syncBotPause();
+    renderKeySummary();
+    updateHud();
+  } else if (!running) {
+    setNetLine('Не вдалося з’єднатися.');
+  }
+}
+
+function openNet() {
+  const dial = rivalNick;
+  loadPeerJs().then(() => {
+    if (!window.Peer) throw new Error('peer');
+    const peer = new Peer(nickId(myNick), { debug: 0 });
+    net = { peer: peer, live: null, sentStart: false, gotStart: false, iAmHost: false, dial: dial, arming: false, armTimer: 0, froze: false, countLeft: 0, due: 0 };
+    peer.on('open', () => {
+      if (!net || net.peer !== peer) return;
+      if (dial) {
+        const conn = peer.connect(nickId(dial), { reliable: true });
+        adoptConn(conn);
+      }
+    });
+    peer.on('connection', (conn) => adoptConn(conn));
+    peer.on('error', (err) => {
+      if (!net || net.peer !== peer) return;
+      const type = err && err.type;
+      if (type === 'peer-unavailable') setNetLine('«' + dial + '» зараз не в грі.');
+      else if (type === 'unavailable-id') setNetLine('Нік «' + myNick + '» уже відкритий в іншій вкладці.');
+      else if (type === 'network' || type === 'server-error' || type === 'socket-error' || type === 'disconnected') {
+        setNetLine('Мережа зараз недоступна. Можна грати з ботом або з другом за цим комп’ютером.');
+      }
+    });
+  }).catch(() => {
+    setNetLine('Не вдалося підключитися до мережі. Граєш локально.');
+  });
+}
+
+function netTick(dt) {
+  if (countLeft > 0) return;
+  if (!net || !net.live || !net.live.open || screen !== 'play') return;
+  netAcc += dt;
+  if (netAcc < 80) return;
+  netAcc = 0;
+  const s = seats[0];
+  sendNet({
+    t: 's',
+    g: packGrid(s.grid),
+    p: s.pill ? { x: s.pill.x, y: s.pill.y, rot: s.pill.rot, a: s.pill.a, b: s.pill.b } : null,
+    n: s.nextColors,
+    pts: s.points,
+  });
+}
+
+function readNicks() {
+  myNick = (el.nick.value || '').trim();
+  rivalNick = (el.rivalNick.value || '').trim();
+  return myNick;
+}
+
+function rememberNicks() {
+  try { localStorage.setItem('dr-mmm-nicks', JSON.stringify({ me: myNick, rival: rivalNick })); } catch (err) { /* нічого */ }
+}
+
+function enterMatch(layout) {
+  runStart = Number(el.level.value);
+  if (!layout) level = runStart;
+  score = 0;
+  bestBefore = best;
+  running = true;
+  paused = false;
+  seats[0].bot = false;
+  seats[0].remote = false;
+  seats[0].points = 0;
+  seats[1].points = 0;
+  seats[0].crowns = 0;
+  seats[1].crowns = 0;
+  seats[1].held = false;
+  if (!(net && net.live)) {
+    seats[1].remote = false;
+    seats[1].bot = rival !== 'human';
+  } else {
+    seats[1].remote = true;
+    seats[1].bot = false;
+  }
+  el.menu.hidden = true;
+  el.hero.hidden = true;
+  el.play.hidden = false;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  ensureAudio();
+  beginLevel(layout);
+  syncBotPause();
+  ensureLoop();
+}
+
+function startGame() {
+  if (!readNicks()) {
+    setNetLine('Напиши свій нік.');
+    el.nick.focus();
+    return;
+  }
+  if (rivalNick && rivalNick.toLowerCase() === myNick.toLowerCase()) {
+    setNetLine('У другому полі має бути нік іншої людини.');
+    el.rivalNick.focus();
+    return;
+  }
+  rememberNicks();
+  if (net && net.live && screen === 'match') {
+    if (!net.iAmHost) { sendNet({ t: 'again' }); return; }
+    net.sentStart = false;
+    sendStart();
+    return;
+  }
+  closeNet();
+  remoteNick = '';
+  if (rival !== 'human' && rivalNick) {
+    setNetLine('Шукаю «' + rivalNick + '»…');
+    openNet();
+    return;
+  }
+  enterMatch();
+  if (rival !== 'human') {
+    setNetLine('Ти в мережі як «' + myNick + '». Хто напише цей нік, підсяде замість бота.');
+    openNet();
+  } else {
+    setNetLine('');
+  }
+}
+
+function burst(x, y, color) {
+  const main = PAL[color].main;
+  for (let i = 0; i < 7; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = 50 + Math.random() * 110;
+    seat.particles.push({
+      x: OX + (x + 0.5) * CELL,
+      y: OY + (y + 0.5) * CELL,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v - 40,
+      age: 0,
+      life: 420 + Math.random() * 180,
+      color: main,
+    });
+  }
+}
+
+function tickJuice(dt) {
+  animTime += dt / seats.length;
+  for (const p of seat.particles) {
+    p.age += dt;
+    p.x += p.vx * dt / 1000;
+    p.y += p.vy * dt / 1000;
+    p.vy += 260 * dt / 1000;
+  }
+  seat.particles = seat.particles.filter((p) => p.age < p.life);
+  for (const p of seat.popups) p.age += dt;
+  seat.popups = seat.popups.filter((p) => p.age < 900);
+  if (seat.toast) {
+    seat.toast.age += dt;
+    if (seat.toast.age > 900) seat.toast = null;
+  }
+  if (seat.shake > 0) seat.shake = Math.max(0, seat.shake - dt / 160);
+}
+
+function update(dt) {
+  if (screen !== 'play' || paused) return;
+  for (const s of seats) {
+    if (screen !== 'play') break;
+    seat = s;
+    if (seat.remote) {
+      tickJuice(dt);
+      continue;
+    }
+    if (seat.bot && seat.held) continue;
+    tickJuice(dt);
+    if (seat.phase === 'done') continue;
+    if (seat.phase === 'control') updateControl(dt);
+    else if (seat.phase === 'clear') {
+      seat.clearAge += dt;
+      if (seat.clearAge >= 520) finishClear();
+    } else if (seat.phase === 'grav') {
+      seat.gravAcc += dt;
+      if (seat.gravAcc >= 40) {
+        seat.gravAcc = 0;
+        if (!gravityStep()) afterSettle();
+      }
+    }
+  }
+  updateHud();
+}
+
+function boardValue() {
+  if (seat.simLose) return -100000;
+  if (seat.simWin || virusCount() === 0) return 250000;
+  let holes = 0;
+  let maxH = 0;
+  let touch = 0;
+  for (let x = 0; x < COLS; x++) {
+    let seen = false;
+    let colH = 0;
+    for (let y = 0; y < ROWS; y++) {
+      const cell = seat.grid[y][x];
+      if (cell) {
+        if (!seen) colH = ROWS - y;
+        seen = true;
+        const dirs = [[1, 0], [0, 1]];
+        for (const d of dirs) {
+          const xx = x + d[0];
+          const yy = y + d[1];
+          const near = yy < ROWS && xx < COLS ? seat.grid[yy][xx] : null;
+          if (near && near.c === cell.c) touch += near.t === 'v' ? 3 : 1;
+        }
+      } else if (seen) holes++;
+    }
+    if (colH > maxH) maxH = colH;
+  }
+  return seat.simViruses * 950 + seat.simLines * 30 + touch * 10 + (seat.landY || 0) * 2 - holes * 42 - maxH * 8;
+}
+
+function simulatePlacement(source, x, rot, a, b) {
+  const ghost = createSeat(9, true);
+  ghost.sim = true;
+  ghost.grid = cloneGrid(source);
+  ghost.phase = 'control';
+  ghost.pill = { x: x, y: 0, rot: rot, a: a, b: b };
+  if (!withSeat(ghost, () => classify(x, 0, rot).ok)) return null;
+  return withSeat(ghost, () => {
+    let guard = 0;
+    while (guard++ < 20 && classify(ghost.pill.x, ghost.pill.y + 1, ghost.pill.rot).ok) ghost.pill.y++;
+    ghost.landY = ghost.pill.y;
+    lockPill();
+    return boardValue();
+  });
+}
+
+function choosePlan() {
+  const options = [];
+  const a = seat.pill.a;
+  const b = seat.pill.b;
+  for (const rot of [0, 1, 2, 3]) {
+    const maxX = rot === 3 ? COLS - 1 : COLS - 2;
+    for (let x = 0; x <= maxX; x++) {
+      const value = simulatePlacement(seat.grid, x, rot, a, b);
+      if (value === null) continue;
+      options.push({ x: x, rot: rot, value: value, token: seat.token });
+    }
+  }
+  if (!options.length) return { x: seat.pill.x, rot: seat.pill.rot, token: seat.token };
+  options.sort((u, v) => v.value - u.value);
+  const best = options[0].value;
+  const close = options.filter((o) => best - o.value <= 70);
+  return close[Math.floor(Math.random() * Math.min(close.length, 2))];
+}
+
+function updateBot(dt) {
+  if (!seat.pill) return;
+  if (!seat.plan || seat.plan.token !== seat.token) {
+    seat.plan = choosePlan();
+    seat.think = 0;
+  }
+  seat.think += dt;
+  const wait = seat.plan.moved ? 210 : 480;
+  if (seat.think < wait) return;
+  seat.think = 0;
+  seat.plan.moved = true;
+  if (seat.pill.rot !== seat.plan.rot) {
+    const cw = (seat.plan.rot - seat.pill.rot + 4) % 4;
+    const dir = cw === 3 ? -1 : 1;
+    if (tryRotate(dir) || tryRotate(-dir)) return;
+  }
+  if (seat.pill.x !== seat.plan.x) {
+    const dir = seat.pill.x < seat.plan.x ? 1 : -1;
+    if (!tryMoveX(dir)) {
+      seat.plan = null;
+      seat.token++;
+    }
+  }
+}
+
+function updateControl(dt) {
+  if (seat.bot) updateBot(dt);
+  const map = seatBinds();
+  const left = (!seat.bot && keys.has(map.left)) || (seat.index === 0 && padHold.left);
+  const right = (!seat.bot && keys.has(map.right)) || (seat.index === 0 && padHold.right);
+  let dir = 0;
+  if (!seat.bot) {
+    if (left && !right) dir = -1;
+    else if (right && !left) dir = 1;
+  }
+  if (!dir) {
+    if (!seat.bot) {
+      seat.dasDir = 0;
+      seat.das = 0;
+      seat.dasOn = false;
+    }
+  } else if (dir !== seat.dasDir) {
+    seat.dasDir = dir;
+    seat.das = 0;
+    seat.dasOn = false;
+    tryMoveX(dir);
+  } else {
+    seat.das += dt;
+    const need = seat.dasOn ? 40 : 160;
+    if (seat.das >= need) {
+      seat.das -= need;
+      seat.dasOn = true;
+      tryMoveX(dir);
+    }
+  }
+
+  const soft = !seat.bot && (keys.has(map.soft) || (seat.index === 0 && padHold.soft));
+  seat.dropAcc += dt;
+  const interval = soft ? 34 : seat.dropInterval;
+  if (seat.dropAcc >= interval) {
+    seat.dropAcc = 0;
+    if (seat.pill && classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) {
+      seat.pill.y++;
+      seat.lockTimer = 0;
+      seat.lockResets = 0;
+    }
+  }
+  if (!seat.pill) return;
+  if (!classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) {
+    seat.lockTimer += dt;
+    if (seat.lockTimer >= (soft ? 80 : 460)) lockPill();
+  } else {
+    seat.lockTimer = 0;
+  }
+}
+
+function roundRect(context, x, y, w, h, r) {
+  const tl = r[0];
+  const tr = r[1];
+  const br = r[2];
+  const bl = r[3];
+  context.beginPath();
+  context.moveTo(x + tl, y);
+  context.arcTo(x + w, y, x + w, y + h, tr);
+  context.arcTo(x + w, y + h, x, y + h, br);
+  context.arcTo(x, y + h, x, y, bl);
+  context.arcTo(x, y, x + w, y, tl);
+  context.closePath();
+}
+
+function drawHalf(context, x, y, s, color, joins) {
+  const p = PAL[color];
+  let dx = 3;
+  let dy = 3;
+  let w = s - 6;
+  let h = s - 6;
+  if (joins.l) { dx = 0; w += 3; }
+  if (joins.r) w += 3;
+  if (joins.u) { dy = 0; h += 3; }
+  if (joins.d) h += 3;
+  roundRect(context, x + dx, y + dy, w, h, [
+    (joins.l || joins.u) ? 3 : 10,
+    (joins.r || joins.u) ? 3 : 10,
+    (joins.r || joins.d) ? 3 : 10,
+    (joins.l || joins.d) ? 3 : 10,
+  ]);
+  context.fillStyle = p.main;
+  context.fill();
+  context.lineWidth = 2;
+  context.strokeStyle = p.dark;
+  context.stroke();
+  context.fillStyle = 'rgba(255,255,255,0.38)';
+  context.beginPath();
+  context.ellipse(x + dx + w * 0.34, y + dy + h * 0.32, Math.max(2, w * 0.16), Math.max(2, h * 0.12), -0.5, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawVirus(context, x, y, s, c) {
+  const p = PAL[c];
+  const bob = Math.sin(animTime / 220 + x * 0.2 + y) * 1.15;
+  const cx = x + s / 2;
+  const cy = y + s / 2 + bob;
+  context.save();
+  context.translate(cx, cy);
+  context.fillStyle = p.dark;
+  for (let i = 0; i < 7; i++) {
+    const a = animTime / 900 + i * (Math.PI * 2 / 7);
+    context.beginPath();
+    context.ellipse(Math.cos(a) * s * 0.28, Math.sin(a) * s * 0.28, s * 0.07, s * 0.11, a, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.beginPath();
+  context.arc(0, 0, s * 0.28, 0, Math.PI * 2);
+  context.fillStyle = p.main;
+  context.fill();
+  context.lineWidth = 2;
+  context.strokeStyle = p.dark;
+  context.stroke();
+  context.fillStyle = '#fffef8';
+  context.beginPath();
+  context.ellipse(-s * 0.09, -s * 0.04, s * 0.065, s * 0.075, 0, 0, Math.PI * 2);
+  context.ellipse(s * 0.09, -s * 0.04, s * 0.065, s * 0.075, 0, 0, Math.PI * 2);
+  context.fill();
+  const look = Math.sin(animTime / 480 + y) * 1.4;
+  context.fillStyle = '#1c1914';
+  context.beginPath();
+  context.arc(-s * 0.09 + look, -s * 0.03, s * 0.03, 0, Math.PI * 2);
+  context.arc(s * 0.09 + look, -s * 0.03, s * 0.03, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = '#1c1914';
+  context.lineWidth = 1.6;
+  context.lineCap = 'round';
+  context.beginPath();
+  if (c === 0) {
+    context.moveTo(-s * 0.07, -s * 0.12);
+    context.lineTo(-s * 0.02, -s * 0.08);
+    context.moveTo(s * 0.07, -s * 0.12);
+    context.lineTo(s * 0.02, -s * 0.08);
+    context.moveTo(-s * 0.07, s * 0.1);
+    context.lineTo(s * 0.07, s * 0.1);
+  } else if (c === 1) {
+    context.arc(0, s * 0.05, s * 0.07, 0.15 * Math.PI, 0.85 * Math.PI);
+  } else {
+    context.arc(0, s * 0.12, s * 0.07, 1.15 * Math.PI, 1.85 * Math.PI);
+  }
+  context.stroke();
+  context.restore();
+}
+
+function joinsAt(x, y) {
+  const id = seat.grid[y][x] && seat.grid[y][x].id;
+  const same = (xx, yy) => yy >= 0 && yy < ROWS && xx >= 0 && xx < COLS && seat.grid[yy][xx] && seat.grid[yy][xx].id === id;
+  return {
+    l: !!(id && same(x - 1, y)),
+    r: !!(id && same(x + 1, y)),
+    u: !!(id && same(x, y - 1)),
+    d: !!(id && same(x, y + 1)),
+  };
+}
+
+function blinkOff() {
+  if (seat.phase !== 'clear') return false;
+  return Math.floor(seat.clearAge / 70) % 2 === 1;
+}
+
+function draw() {
+  ctx = seat.ctx;
+  if (!ctx) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (seat.shake > 0) ctx.translate((Math.random() - 0.5) * seat.shake * 5, (Math.random() - 0.5) * seat.shake * 5);
+
+  const neckH = Math.round(CELL * 0.62);
+  const neckW = CELL * 2 + Math.round(CELL * 0.85);
+  const neckX = OX + 3 * CELL - Math.round((neckW - CELL * 2) / 2);
+  const neckY = Math.max(2, OY - neckH - 2);
+  roundRect(ctx, 6, neckY + 4, W - 12, H - neckY - 14, [18, 18, 26, 26]);
+  ctx.fillStyle = 'rgba(198, 236, 220, 0.14)';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(232, 248, 240, 0.85)';
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(198, 236, 220, 0.2)';
+  ctx.fillRect(neckX, neckY, neckW, neckH);
+  ctx.strokeStyle = 'rgba(232, 248, 240, 0.85)';
+  ctx.strokeRect(neckX, neckY, neckW, neckH);
+
+  ctx.fillStyle = '#071410';
+  ctx.fillRect(OX - 4, OY - 4, COLS * CELL + 8, ROWS * CELL + 8);
+
+  let hot = false;
+  for (let y = 0; y < 3 && !hot; y++) {
+    for (let x = 0; x < COLS; x++) if (seat.grid[y][x]) hot = true;
+  }
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const px = OX + x * CELL;
+      const py = OY + y * CELL;
+      roundRect(ctx, px + 2, py + 2, CELL - 4, CELL - 4, [5, 5, 5, 5]);
+      ctx.fillStyle = (hot && y === 0 && (x === 3 || x === 4)) ? '#3a1818' : '#0d1d17';
+      ctx.fill();
+    }
+  }
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = seat.grid[y][x];
+      if (!cell) continue;
+      if (blinkOff() && seat.clearSet.has(x + ',' + y)) continue;
+      const px = OX + x * CELL;
+      const py = OY + y * CELL;
+      if (cell.t === 'v') drawVirus(ctx, px, py, CELL, cell.c);
+      else drawHalf(ctx, px, py, CELL, cell.c, joinsAt(x, y));
+    }
+  }
+
+  if (seat.pill && seat.phase === 'control') {
+    for (const c of cellsOf(seat.pill.x, seat.pill.y, seat.pill.rot)) {
+      if (c.y < -1) continue;
+      const joins = halfJoins(seat.pill.rot, c.k);
+      drawHalf(ctx, OX + c.x * CELL, OY + c.y * CELL, CELL, c.k === 'a' ? seat.pill.a : seat.pill.b, joins);
+    }
+  }
+
+  for (const p of seat.particles) {
+    ctx.globalAlpha = 1 - p.age / p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center';
+  ctx.font = '700 ' + Math.round(CELL * 0.55) + 'px Consolas, monospace';
+  for (const p of seat.popups) {
+    ctx.globalAlpha = 1 - p.age / 900;
+    ctx.fillStyle = '#fff8df';
+    ctx.fillText(p.text, p.x, p.y - p.age / 18);
+  }
+  ctx.globalAlpha = 1;
+  if (seat.toast) {
+    ctx.globalAlpha = seat.toast.age > 650 ? Math.max(0, 1 - (seat.toast.age - 650) / 250) : 1;
+    ctx.fillStyle = '#ffe27a';
+    ctx.font = '700 ' + Math.round(CELL * 0.72) + 'px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.fillText(seat.toast.text, W / 2, OY + CELL);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.78)';
+  ctx.font = '700 ' + Math.max(13, Math.round(CELL * 0.42)) + 'px Trebuchet MS, Segoe UI, sans-serif';
+  ctx.fillText('dr.mery', W / 2, H - 8);
+  if (seat.bot && seat.held) {
+    ctx.fillStyle = 'rgba(6, 18, 14, 0.62)';
+    ctx.fillRect(OX - 4, OY - 4, COLS * CELL + 8, ROWS * CELL + 8);
+    ctx.fillStyle = '#fff8df';
+    ctx.font = '700 ' + Math.round(CELL * 0.95) + 'px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.fillText('Пауза', W / 2, OY + (ROWS * CELL) / 2);
+    ctx.font = '600 ' + Math.round(CELL * 0.42) + 'px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.fillStyle = '#d7ebe1';
+    ctx.fillText('клік — продовжити', W / 2, OY + (ROWS * CELL) / 2 + CELL);
+  }
+  ctx.restore();
+}
+
+function drawNext() {
+  nctx = seat.nctx;
+  if (!nctx) return;
+  nctx.setTransform(ndpr, 0, 0, ndpr, 0, 0);
+  nctx.clearRect(0, 0, NW, NH);
+  roundRect(nctx, 2, 2, NW - 4, NH - 4, [14, 14, 14, 14]);
+  nctx.fillStyle = '#071410';
+  nctx.fill();
+  nctx.strokeStyle = '#2f5c4c';
+  nctx.lineWidth = 2;
+  nctx.stroke();
+  const s = Math.round(CELL * 0.92);
+  const y = Math.round((NH - s) / 2);
+  const x0 = Math.round(NW / 2 - s);
+  drawHalf(nctx, x0, y, s, seat.nextColors.a, { l: 0, r: 1, u: 0, d: 0 });
+  drawHalf(nctx, x0 + s, y, s, seat.nextColors.b, { l: 1, r: 0, u: 0, d: 0 });
+}
+
+function measureBoards() {
+  const gap = 56;
+  const maxW = Math.max(300, Math.floor((window.innerWidth - 40 - gap) / 2));
+  const maxH = Math.max(560, window.innerHeight - 118);
+  let cell = 52;
+  const pack = (c) => {
+    const ox = Math.max(14, Math.round(c * 0.42));
+    const oy = Math.max(18, Math.round(c * 0.55));
+    return {
+      c: c,
+      ox: ox,
+      oy: oy,
+      w: ox * 2 + COLS * c,
+      h: oy + Math.max(18, Math.round(c * 0.5)) + ROWS * c,
+      nw: Math.round(c * 4.2),
+      nh: Math.round(c * 1.7),
+    };
+  };
+  let box = pack(cell);
+  while (cell > 28 && (box.w > maxW || box.h + box.nh + 8 > maxH)) {
+    cell -= 1;
+    box = pack(cell);
+  }
+  CELL = box.c;
+  OX = box.ox;
+  OY = box.oy;
+  W = box.w;
+  H = box.h;
+  NW = box.nw;
+  NH = box.nh;
+}
+
+function fitCanvases() {
+  measureBoards();
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  ndpr = dpr;
+  const bar = document.querySelector('.matchbar');
+  if (bar) bar.style.width = Math.min(window.innerWidth - 32, W * 2 + 56) + 'px';
+  seats.forEach((s, i) => {
+    const board = document.getElementById('board' + i);
+    const next = document.getElementById('next' + i);
+    s.canvas = board;
+    board.parentElement.style.width = W + 'px';
+    board.style.width = W + 'px';
+    board.style.height = H + 'px';
+    board.width = Math.round(W * dpr);
+    board.height = Math.round(H * dpr);
+    s.ctx = board.getContext('2d');
+    next.style.width = NW + 'px';
+    next.style.height = NH + 'px';
+    next.width = Math.round(NW * dpr);
+    next.height = Math.round(NH * dpr);
+    s.nctx = next.getContext('2d');
+  });
+  ctx = seats[0].ctx;
+  nctx = seats[0].nctx;
+}
+
+function syncBotPause() {
+  const btn = document.getElementById('botPause');
+  if (!btn) return;
+  const show = !!(seats[1] && seats[1].bot);
+  btn.hidden = !show;
+  btn.textContent = seats[1].held ? 'Пустити бота' : 'Пауза боту';
+  btn.setAttribute('aria-pressed', seats[1].held ? 'true' : 'false');
+}
+
+function toggleBotHold() {
+  if (!seats[1].bot || !running || screen !== 'play') return;
+  seats[1].held = !seats[1].held;
+  syncBotPause();
+}
+
+function ensureLoop() {
+  if (loopOn) return;
+  loopOn = true;
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+
+function frame(now) {
+  const dt = Math.min(48, now - last);
+  last = now;
+  if (running) {
+    update(dt);
+    netTick(dt);
+    for (const s of seats) {
+      seat = s;
+      draw();
+      drawNext();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function tone(freq, dur, type, vol, when) {
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime + (when || 0);
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type || 'square';
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+function sfx(kind) {
+  if (seat && seat.sim) return;
+  if (seat && seat.bot && (kind === 'rotate' || kind === 'lock' || kind === 'chime')) return;
+  if (kind === 'rotate') tone(560, 0.05, 'square', 0.03);
+  else if (kind === 'lock') tone(150, 0.06, 'triangle', 0.04);
+  else if (kind === 'pop') tone(300, 0.07, 'square', 0.03);
+  else if (kind === 'clear') {
+    tone(440, 0.08, 'square', 0.04, 0);
+    tone(560, 0.09, 'square', 0.04, 0.07);
+    tone(700, 0.12, 'square', 0.04, 0.14);
+  } else if (kind === 'chime') {
+    [523, 659, 784, 659, 880].forEach((f, i) => tone(f, 0.1, 'square', 0.035, i * 0.09));
+  } else if (kind === 'win') {
+    [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.14, 'square', 0.04, i * 0.1));
+  } else if (kind === 'over') {
+    tone(300, 0.16, 'square', 0.04, 0);
+    tone(180, 0.28, 'triangle', 0.05, 0.14);
+  }
+}
+
+function keyLabel(code) {
+  const named = {
+    ArrowLeft: '←',
+    ArrowRight: '→',
+    ArrowUp: '↑',
+    ArrowDown: '↓',
+    Space: 'Пробіл',
+    Enter: 'Enter',
+    Backspace: 'Backspace',
+    ShiftLeft: 'Лівий Shift',
+    ShiftRight: 'Правий Shift',
+    ControlLeft: 'Лівий Ctrl',
+    ControlRight: 'Правий Ctrl',
+    AltLeft: 'Лівий Alt',
+    AltRight: 'Правий Alt',
+    CapsLock: 'Caps Lock',
+  };
+  if (named[code]) return named[code];
+  if (code.indexOf('Key') === 0 && code.length === 4) return code.slice(3);
+  if (code.indexOf('Digit') === 0) return code.slice(5);
+  if (code.indexOf('Numpad') === 0) return 'Num ' + code.slice(6);
+  return code;
+}
+
+function takeBinds(raw, ids, fallback) {
+  const next = Object.assign({}, fallback);
+  if (!raw) return next;
+  const ok = ids.every((id) => typeof raw[id] === 'string' && raw[id] && !RESERVED_KEYS.has(raw[id]));
+  const unique = ok && new Set(ids.map((id) => raw[id])).size === ids.length;
+  if (unique) ids.forEach((id) => { next[id] = raw[id]; });
+  return next;
+}
+
+function dedupeBinds() {
+  const used = new Set(ACTION_IDS.map((id) => binds[id]));
+  P2_ACTIONS.forEach((id) => {
+    if (!used.has(binds2[id])) { used.add(binds2[id]); return; }
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let free = '';
+    for (let i = 0; i < letters.length; i++) {
+      const code = 'Key' + letters.charAt(i);
+      if (!used.has(code)) { free = code; break; }
+    }
+    binds2[id] = free || 'F8';
+    used.add(binds2[id]);
+  });
+}
+
+function loadKeys() {
+  binds = Object.assign({}, DEFAULT_BINDS);
+  binds2 = Object.assign({}, DEFAULT_BINDS_P2);
+  try {
+    const raw = JSON.parse(localStorage.getItem('dr-mmm-keys') || 'null');
+    if (!raw) return;
+    if (raw.p1 || raw.p2) {
+      binds = takeBinds(raw.p1, ACTION_IDS, DEFAULT_BINDS);
+      binds2 = takeBinds(raw.p2, P2_ACTIONS, DEFAULT_BINDS_P2);
+    } else {
+      binds = takeBinds(raw, ACTION_IDS, DEFAULT_BINDS);
+    }
+    dedupeBinds();
+  } catch (err) { /* стандартні */ }
+}
+
+function saveKeys() {
+  try { localStorage.setItem('dr-mmm-keys', JSON.stringify({ p1: binds, p2: binds2 })); } catch (err) { /* нічого */ }
+}
+
+function assignKey(action, code) {
+  if (RESERVED_KEYS.has(code)) return 'reserved';
+  const mine = listenWho === 0 ? binds : binds2;
+  const ids = listenWho === 0 ? ACTION_IDS : P2_ACTIONS;
+  if (ids.indexOf(action) < 0) return 'reserved';
+  if (mine[action] === code) return 'same';
+  const pools = [[0, binds, ACTION_IDS], [1, binds2, P2_ACTIONS]];
+  for (const pool of pools) {
+    for (const id of pool[2]) {
+      if (pool[0] === listenWho && id === action) continue;
+      if (pool[1][id] === code) pool[1][id] = mine[action];
+    }
+  }
+  mine[action] = code;
+  dedupeBinds();
+  return 'ok';
+}
+
+function setKeyStatus(text) {
+  el.keyStatus.textContent = text;
+}
+
+function fillBlurb(node, map, ids, prefix) {
+  node.replaceChildren();
+  if (prefix) node.append(prefix);
+  ids.forEach((id, i) => {
+    if (i) node.append(' · ');
+    const key = document.createElement('kbd');
+    key.textContent = keyLabel(map[id]);
+    node.append(key, ' ' + SUMMARY_LABEL[id]);
+  });
+}
+
+function renderKeySummary() {
+  fillBlurb(el.keyBlurb, binds, ACTION_IDS, 'Ти: ');
+  fillBlurb(el.keyBlurb2, binds2, P2_ACTIONS, 'Друг: ');
+  el.keySummary.replaceChildren();
+  if (seats[1].remote) {
+    el.keySummary.textContent = 'Граєш через мережу з ' + (remoteNick || rivalNick || 'суперником') + '. Клавіші лише твої.';
+    syncBotPause();
+    return;
+  }
+  if (seats[1].bot) {
+    el.keySummary.textContent = 'Клік по пляшці бота або кнопка нижче ставить лише його на паузу.';
+    syncBotPause();
+    return;
+  }
+  syncBotPause();
+  fillBlurb(el.keySummary, binds2, P2_ACTIONS, '');
+}
+
+function renderBinds() {
+  const ids = listenWho === 0 ? ACTION_IDS : P2_ACTIONS;
+  const map = listenWho === 0 ? binds : binds2;
+  el.keyList.replaceChildren();
+  for (const id of ids) {
+    const row = document.createElement('div');
+    row.className = 'bind-row';
+    const name = document.createElement('span');
+    name.textContent = ACTION_LABEL[id];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = listening === id ? 'Натисни…' : keyLabel(map[id]);
+    if (listening === id) btn.classList.add('arm');
+    btn.addEventListener('click', () => {
+      listening = listening === id ? null : id;
+      setKeyStatus(listening ? 'Натисни нову клавішу. Esc скасовує.' : '');
+      renderBinds();
+    });
+    row.append(name, btn);
+    el.keyList.append(row);
+  }
+  const who = document.getElementById('keyWho');
+  if (who) {
+    for (const btn of who.querySelectorAll('button')) {
+      btn.setAttribute('aria-pressed', Number(btn.dataset.who) === listenWho ? 'true' : 'false');
+    }
+  }
+  renderKeySummary();
+}
+
+function finishListen(code) {
+  if (!listening) return;
+  if (code === 'Escape') {
+    listening = null;
+    setKeyStatus('Скасовано.');
+    renderBinds();
+    return;
+  }
+  const action = listening;
+  const result = assignKey(action, code);
+  if (result === 'reserved') {
+    setKeyStatus('Escape, Tab і службові клавіші браузера залишаю вільними.');
+    return;
+  }
+  listening = null;
+  if (result === 'ok') {
+    saveKeys();
+    setKeyStatus('Збережено.');
+  } else {
+    setKeyStatus('Ця клавіша вже стоїть на цій дії.');
+  }
+  renderBinds();
+}
+
+function openKeys() {
+  if (running && !paused && screen === 'play') togglePause();
+  listening = null;
+  setKeyStatus('');
+  el.keyOverlay.hidden = false;
+  renderBinds();
+}
+
+function closeKeys() {
+  listening = null;
+  el.keyOverlay.hidden = true;
+  renderKeySummary();
+}
+
+function ownerOf(code) {
+  for (const s of seats) {
+    if (s.bot) continue;
+    const map = s.index === 0 ? binds : binds2;
+    const ids = s.index === 0 ? ACTION_IDS : P2_ACTIONS;
+    for (const id of ids) if (map[id] === code) return s;
+  }
+  return null;
+}
+
+function onKeyDown(e) {
+  if (listening) {
+    e.preventDefault();
+    if (e.repeat) return;
+    finishListen(e.code);
+    return;
+  }
+  if (!el.keyOverlay.hidden) {
+    if (e.code === 'Escape') {
+      e.preventDefault();
+      closeKeys();
+    }
+    return;
+  }
+  if (!running) return;
+  const bound = ownerOf(e.code) || e.code === binds.pause;
+  if (bound || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') {
+    e.preventDefault();
+  }
+  if (e.repeat) return;
+  keys.add(e.code);
+  if (e.code === binds.pause) togglePause();
+  if (e.code === 'Escape') {
+    if (screen === 'round' || screen === 'match') goMenu();
+    else togglePause();
+  }
+  if (e.code === 'Enter') {
+    if (paused) togglePause();
+    else if (screen === 'round') nextRound();
+    else if (screen === 'match') startGame();
+  }
+  const owner = ownerOf(e.code);
+  if (!owner || paused || screen !== 'play' || owner.phase !== 'control') return;
+  const prev = seat;
+  seat = owner;
+  const map = seatBinds();
+  if (e.code === map.left || e.code === map.right) seat.dasDir = 0;
+  if (e.code === map.cw) tryRotate(1);
+  if (e.code === map.ccw) tryRotate(-1);
+  if (e.code === map.hard) hardDrop();
+  seat = prev;
+}
+
+function onKeyUp(e) {
+  keys.delete(e.code);
+}
+
+function actDown(act) {
+  const prev = seat;
+  seat = seats[0];
+  if (act === 'left') { padHold.left = true; seat.dasDir = 0; }
+  if (act === 'right') { padHold.right = true; seat.dasDir = 0; }
+  if (act === 'down') padHold.soft = true;
+  if (act === 'cw') tryRotate(1);
+  if (act === 'ccw') tryRotate(-1);
+  if (act === 'hard') hardDrop();
+  seat = prev;
+}
+
+function actUp(act) {
+  if (act === 'left') padHold.left = false;
+  if (act === 'right') padHold.right = false;
+  if (act === 'down') padHold.soft = false;
+}
+
+el.level.addEventListener('input', () => { refreshMenu(); saveOpts(); });
+el.speeds.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  speed = btn.dataset.speed;
+  for (const b of el.speeds.querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+  }
+  saveOpts();
+});
+document.getElementById('rivals').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  rival = btn.dataset.rival;
+  for (const b of document.getElementById('rivals').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+  }
+  saveOpts();
+});
+document.getElementById('keyWho').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  listenWho = Number(btn.dataset.who);
+  listening = null;
+  renderBinds();
+});
+el.soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  el.soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  el.soundBtn.textContent = soundOn ? 'Увімкнено' : 'Вимкнено';
+  saveOpts();
+  if (soundOn) { ensureAudio(); sfx('rotate'); }
+});
+el.start.addEventListener('click', startGame);
+document.getElementById('openKeysMenu').addEventListener('click', openKeys);
+document.getElementById('openKeysPlay').addEventListener('click', openKeys);
+document.getElementById('bannerKeys').addEventListener('click', openKeys);
+document.getElementById('closeKeys').addEventListener('click', closeKeys);
+document.getElementById('resetKeys').addEventListener('click', () => {
+  binds = Object.assign({}, DEFAULT_BINDS);
+  binds2 = Object.assign({}, DEFAULT_BINDS_P2);
+  listening = null;
+  saveKeys();
+  setKeyStatus('Повернув стандартні клавіші.');
+  renderBinds();
+});
+el.keyOverlay.addEventListener('click', (e) => {
+  if (e.target === el.keyOverlay) closeKeys();
+});
+el.toMenu.addEventListener('click', goMenu);
+document.getElementById('botPause').addEventListener('click', toggleBotHold);
+document.getElementById('board1').addEventListener('click', toggleBotHold);
+el.bannerMain.addEventListener('click', () => {
+  if (countLeft > 0) return;
+  if (screen === 'round') nextRound();
+  else if (screen === 'match') startGame();
+  else if (paused) togglePause();
+});
+el.bannerMenu.addEventListener('click', goMenu);
+
+document.getElementById('pad').addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  e.preventDefault();
+  btn.setPointerCapture(e.pointerId);
+  actDown(btn.dataset.act);
+});
+document.getElementById('pad').addEventListener('pointerup', (e) => {
+  const btn = e.target.closest('button');
+  if (btn) actUp(btn.dataset.act);
+});
+document.getElementById('pad').addEventListener('pointercancel', (e) => {
+  const btn = e.target.closest('button');
+  if (btn) actUp(btn.dataset.act);
+});
+
+window.addEventListener('keydown', onKeyDown);
+window.addEventListener('keyup', onKeyUp);
+window.addEventListener('blur', () => {
+  keys.clear();
+  padHold.left = false;
+  padHold.right = false;
+  padHold.soft = false;
+  if (running && screen === 'play' && !paused) togglePause();
+});
+window.addEventListener('resize', fitCanvases);
+
+function runTests() {
+  const lines = [];
+  const savedSpeed = speed;
+  const savedLevel = level;
+  function assert(name, cond) {
+    lines.push((cond ? 'OK   ' : 'FAIL ') + name);
+  }
+  speed = 'low';
+  assert('очки 1 повільно', scoreFor(1) === 100);
+  assert('очки 2 повільно', scoreFor(2) === 200);
+  assert('очки 3 повільно', scoreFor(3) === 400);
+  assert('очки 6 повільно', scoreFor(6) === 3200);
+  assert('очки 7 як 6', scoreFor(7) === 3200);
+  speed = 'med';
+  assert('очки 3 середньо', scoreFor(3) === 800);
+  speed = 'hi';
+  assert('очки 1 швидко', scoreFor(1) === 300);
+  assert('очки 4 швидко', scoreFor(4) === 2400);
+  assert('нуль вірусів', scoreFor(0) === 0);
+  assert('хто чекає, той роздає поле', decideHost('Оля', '', 'Марія', 'Оля') === true);
+  assert('хто шукає, той чекає поле', decideHost('Марія', 'Оля', 'Оля', '') === false);
+  assert('обидва шукають — поле роздає менший ід', decideHost('Аня', 'Боря', 'Боря', 'Аня') === (nickId('Аня') < nickId('Боря')));
+  assert('однаковий нік дає той самий ід', nickId('Оля') === nickId(' оля '));
+
+  seat.grid = emptyGrid();
+  for (let x = 0; x < 3; x++) seat.grid[15][x] = { t: 'v', c: 0 };
+  assert('три не зникають', findClearSet().size === 0);
+  seat.grid[15][3] = { t: 'p', c: 0, id: 1 };
+  assert('чотири в ряд', findClearSet().size === 4);
+  seat.grid[15][4] = { t: 'p', c: 0, id: 2 };
+  assert('п’ять у ряд', findClearSet().size === 5);
+  seat.grid[15][5] = { t: 'p', c: 1, id: 3 };
+  assert('інший колір зупиняє ряд', findClearSet().size === 5);
+
+  seat.grid = emptyGrid();
+  for (let y = 12; y <= 15; y++) seat.grid[y][2] = { t: 'v', c: 1 };
+  assert('чотири в стовпчик', findClearSet().size === 4);
+
+  seat.grid = emptyGrid();
+  for (let i = 0; i < 4; i++) seat.grid[12 + i][i] = { t: 'v', c: 0 };
+  assert('діагональ не рахується', findClearSet().size === 0);
+
+  seat.grid = emptyGrid();
+  for (let x = 0; x < 4; x++) seat.grid[15][x] = { t: 'v', c: 0 };
+  for (let y = 12; y <= 14; y++) seat.grid[y][0] = { t: 'v', c: 0 };
+  const corner = findClearSet();
+  assert('обидві лінії кута зникають', corner.size === 7 && corner.has('0,12') && corner.has('3,15'));
+
+  seat.grid = emptyGrid();
+  seat.grid[10][0] = { t: 'p', c: 0, id: 1 };
+  assert('одна половинка висить', hasFloating());
+  assert('падає на крок', gravityStep() && seat.grid[11][0] && seat.grid[11][0].id === 1 && !seat.grid[10][0]);
+
+  seat.grid = emptyGrid();
+  seat.grid[14][0] = { t: 'p', c: 0, id: 5 };
+  seat.grid[14][1] = { t: 'p', c: 1, id: 5 };
+  seat.grid[15][0] = { t: 'v', c: 2 };
+  assert('одна опора тримає капсулу', !hasFloating());
+
+  seat.grid = emptyGrid();
+  seat.grid[10][0] = { t: 'p', c: 0, id: 5 };
+  seat.grid[10][1] = { t: 'p', c: 1, id: 5 };
+  assert('пара падає разом', gravityStep() && seat.grid[11][0].id === 5 && seat.grid[11][1].id === 5);
+
+  seat.grid = emptyGrid();
+  seat.grid[10][0] = { t: 'p', c: 0, id: 1 };
+  seat.grid[11][0] = { t: 'p', c: 1, id: 2 };
+  assert('стос падає разом', gravityStep() && seat.grid[11][0].id === 1 && seat.grid[12][0].id === 2);
+
+  seat.grid = emptyGrid();
+  seat.grid[14][0] = { t: 'p', c: 0, id: 1 };
+  seat.grid[15][0] = { t: 'p', c: 2, id: 2 };
+  assert('на дні стоїть', !hasFloating());
+
+  seat.grid = emptyGrid();
+  seat.grid[13][0] = { t: 'p', c: 0, id: 1 };
+  seat.grid[14][0] = { t: 'p', c: 1, id: 2 };
+  seat.grid[15][0] = { t: 'v', c: 2 };
+  assert('вірус тримає стос', !hasFloating());
+
+  seat.grid = emptyGrid();
+  seat.grid[5][3] = { t: 'p', c: 0, id: 4 };
+  seat.grid[6][3] = { t: 'p', c: 1, id: 4 };
+  assert('вертикальна падає цілою', gravityStep() && seat.grid[6][3].id === 4 && seat.grid[7][3].id === 4 && seat.grid[6][3].c === 0);
+
+  seat.grid = emptyGrid();
+  seat.grid[8][1] = { t: 'p', c: 0, id: 7 };
+  seat.grid[8][2] = { t: 'p', c: 1, id: 7 };
+  seat.grid[9][1] = { t: 'p', c: 2, id: 8 };
+  assert('лежить на тій, що падає', gravityStep() && seat.grid[9][1].id === 7 && seat.grid[9][2].id === 7 && seat.grid[10][1].id === 8);
+
+  seat.grid = emptyGrid();
+  seat.grid[12][2] = { t: 'p', c: 0, id: 9 };
+  seat.grid[12][3] = { t: 'p', c: 2, id: 9 };
+  seat.grid[13][2] = { t: 'v', c: 0 };
+  seat.grid[14][2] = { t: 'v', c: 0 };
+  seat.grid[15][2] = { t: 'v', c: 0 };
+  const cut = findClearSet();
+  assert('зникає лише лінія, не сусід', cut.has('2,12') && cut.has('2,15') && !cut.has('3,12') && cut.size === 4);
+  for (const key of cut) {
+    const parts = key.split(',');
+    seat.grid[Number(parts[1])][Number(parts[0])] = null;
+  }
+  let guard = 0;
+  while (gravityStep() && guard++ < 20) {}
+  assert('відрізана половинка долітає до дна', seat.grid[15][3] && seat.grid[15][3].id === 9 && seat.grid[15][3].c === 2);
+
+  seat.grid = emptyGrid();
+  seat.phase = 'control';
+  paused = false;
+  seat.pill = { x: 3, y: 5, rot: 0, a: 0, b: 1 };
+  assert('поворот вліво ставить ліву зверху', tryRotate(-1) && seat.pill.rot === 1 && seat.pill.x === 3 && seat.pill.a === 0 && seat.pill.b === 1);
+  const up = cellsOf(seat.pill.x, seat.pill.y, seat.pill.rot);
+  assert('ліва половинка зверху, права знизу', up[0].y === 4 && up[1].y === 5 && up[0].x === 4 && up[1].x === 4);
+  assert('другий поворот вліво перевертає кольори', tryRotate(-1) && seat.pill.rot === 2 && seat.pill.x === 3 && seat.pill.a === 0 && seat.pill.b === 1);
+  const flip = cellsOf(seat.pill.x, seat.pill.y, seat.pill.rot);
+  assert('після двох натискань ліворуч права стала лівою', flip.find((c) => c.k === 'b').x === 3 && flip.find((c) => c.k === 'a').x === 4);
+  assert('ще два повороти повертають як було', tryRotate(-1) && tryRotate(-1) && seat.pill.rot === 0 && seat.pill.x === 3 && seat.pill.a === 0);
+  seat.pill = { x: 3, y: 5, rot: 0, a: 0, b: 1 };
+  assert('поворот вправо ставить ліву знизу', tryRotate(1) && seat.pill.rot === 3 && seat.pill.a === 0 && seat.pill.b === 1 && seat.pill.x === 3);
+  seat.pill = { x: 7, y: 10, rot: 3, a: 0, b: 1 };
+  assert('поворот біля стінки', tryRotate(1) && seat.pill.x === 6 && seat.pill.rot === 2 && seat.pill.a === 0);
+  seat.grid[9][4] = { t: 'v', c: 1 };
+  seat.pill = { x: 3, y: 10, rot: 0, a: 0, b: 1 };
+  assert('поворот у вірус не проходить', !tryRotate(-1) && seat.pill.rot === 0 && seat.pill.x === 3);
+
+  level = 0;
+  seat.grid = emptyGrid();
+  placeViruses(4);
+  fixInitialMatches();
+  let topHit = false;
+  for (let y = 0; y < 3; y++) for (let x = 0; x < COLS; x++) if (seat.grid[y][x]) topHit = true;
+  assert('рівень 0 без готової четвірки', findClearSet().size === 0 && virusCount() === 4 && !topHit);
+
+  level = 15;
+  seat.grid = emptyGrid();
+  placeViruses(64);
+  fixInitialMatches();
+  topHit = false;
+  for (let y = 0; y < 3; y++) for (let x = 0; x < COLS; x++) if (seat.grid[y][x]) topHit = true;
+  assert('високий рівень без стартової четвірки', findClearSet().size === 0 && !topHit && virusCount() > 40);
+
+  seat.grid = emptyGrid();
+  seat.phase = 'control';
+  for (let x = 0; x < 3; x++) seat.grid[15][x] = { t: 'v', c: 0 };
+  assert('бот бачить знищення вірусів', simulatePlacement(seat.grid, 3, 0, 0, 0) > 1000);
+
+  assert('підпис стрілки', keyLabel('ArrowLeft') === '←');
+  assert('підпис літери', keyLabel('KeyQ') === 'Q');
+  const savedBinds = Object.assign({}, binds);
+  binds.left = 'ArrowLeft';
+  binds.right = 'ArrowRight';
+  binds.pause = 'KeyP';
+  assert('обмін зайнятої клавіші', assignKey('left', 'ArrowRight') === 'ok' && binds.left === 'ArrowRight' && binds.right === 'ArrowLeft');
+  assert('службова клавіша не займається', assignKey('pause', 'Escape') === 'reserved' && binds.pause === 'KeyP');
+  binds = savedBinds;
+
+  seat.grid = emptyGrid();
+  seat.phase = 'menu';
+  seat.pill = null;
+  paused = false;
+  speed = savedSpeed;
+  level = savedLevel;
+  renderBinds();
+  const failed = lines.filter((line) => line.indexOf('FAIL') === 0).length;
+  lines.unshift(failed ? ('Невдалі: ' + failed) : 'Усі перевірки пройшли');
+  return lines;
+}
+
+loadStore();
+fitCanvases();
+window.__mmm = {
+  dump: function () {
+    return seat.grid.map(function (row) {
+      return row.map(function (c) { return c ? (c.t === 'v' ? 'V' + c.c : 'P' + c.c) : '.'; }).join(' ');
+    }).join('\n');
+  },
+  state: function () {
+    return {
+      phase: seat.phase,
+      screen: screen,
+      score: score,
+      viruses: virusCount(),
+      level: level,
+      paused: paused,
+      x: seat.pill ? seat.pill.x : null,
+      left: binds.left,
+    };
+  },
+};
+
+if (new URLSearchParams(location.search).has('test')) {
+  const out = document.getElementById('tests');
+  try {
+    const lines = runTests();
+    out.hidden = false;
+    out.textContent = lines.join('\n');
+    if (lines[0].indexOf('Невдалі') === 0) out.classList.add('bad');
+  } catch (err) {
+    out.hidden = false;
+    out.classList.add('bad');
+    out.textContent = String(err && err.stack || err);
+  }
+}
+</script>
+</body>
+</html>
