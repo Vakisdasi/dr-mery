@@ -262,7 +262,7 @@
       <button type="button" data-speed="med" aria-pressed="true">Середньо</button>
       <button type="button" data-speed="hi" aria-pressed="false">Швидко</button>
     </div>
-    <p class="hint">Швидкість задає і падіння, і очки. Кожні 10 капсул у рівні темп трохи зростає. Очки дають тільки знищені віруси.</p>
+    <p class="hint">Швидкість задає і падіння, і очки. Перший раунд іде обраним темпом, кожен наступний — швидше. Очки дають тільки знищені віруси.</p>
 
     <label class="block" for="nick">Твій нік</label>
     <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
@@ -281,7 +281,7 @@
       <button type="button" data-rival="bot" aria-pressed="true">Бот</button>
       <button type="button" data-rival="human" aria-pressed="false">Друг поруч</button>
     </div>
-    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Матч до трьох раундів.</p>
+    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Матч до 84 раундів, як максимум вірусів у пляшці.</p>
 
     <div class="block">Звук</div>
     <div class="speeds">
@@ -312,7 +312,7 @@
   <section id="play" hidden>
     <div class="matchbar card">
       <div class="who">
-        <div><b id="name0">Ти</b> <span class="crowns" id="crowns0">☆☆☆</span></div>
+        <div><b id="name0">Ти</b> <span class="crowns" id="crowns0">0</span></div>
         <div class="hint">Віруси <b id="left0">0</b> · очки <b id="score0">0</b></div>
       </div>
       <div class="vs">
@@ -321,7 +321,7 @@
         <span class="hint" id="netLine"></span>
       </div>
       <div class="who right">
-        <div><b id="name1">Бот</b> <span class="crowns" id="crowns1">☆☆☆</span></div>
+        <div><b id="name1">Бот</b> <span class="crowns" id="crowns1">0</span></div>
         <div class="hint">Віруси <b id="left1">0</b> · очки <b id="score1">0</b></div>
       </div>
     </div>
@@ -407,6 +407,7 @@ const PAL = [
 ];
 const BASE = { low: 720, med: 420, hi: 220 };
 const MINI = { low: 120, med: 75, hi: 48 };
+const VIRUS_MAX = 84;
 const SPEED_NAME = { low: 'Повільно', med: 'Середньо', hi: 'Швидко' };
 const POINTS = { low: 100, med: 200, hi: 300 };
 const ACTION_IDS = ['left', 'right', 'cw', 'ccw', 'soft', 'hard', 'pause'];
@@ -633,7 +634,7 @@ function saveOpts() {
 function refreshMenu() {
   const lv = Number(el.level.value);
   el.levelNum.textContent = String(lv).padStart(2, '0');
-  el.virusNum.textContent = String(Math.min(84, 4 * lv + 4));
+  el.virusNum.textContent = String(Math.min(VIRUS_MAX, 4 * lv + 4));
 }
 
 function setText(node, text) {
@@ -1029,7 +1030,6 @@ function lockPill() {
   }
   sfx('lock');
   seat.pills++;
-  if (seat.pills > 0 && seat.pills % 10 === 0) speedUp();
   const set = findClearSet();
   if (set.size) beginClear(set);
   else if (hasFloating()) { seat.phase = 'grav'; seat.gravAcc = 0; }
@@ -1037,10 +1037,9 @@ function lockPill() {
   else spawn();
 }
 
-function speedUp() {
-  seat.dropInterval = Math.max(MINI[speed], Math.round(seat.dropInterval * 0.86));
-  seat.toast = { text: 'Швидше!', age: 0 };
-  sfx('chime');
+function roundDropInterval() {
+  const steps = Math.max(0, level - runStart);
+  return Math.max(MINI[speed], Math.round(BASE[speed] * Math.pow(0.86, steps)));
 }
 
 function beginClear(set) {
@@ -1166,7 +1165,7 @@ function blankSeat(s) {
   s.pill = null;
   s.seq = 1;
   s.pills = 0;
-  s.dropInterval = BASE[speed];
+  s.dropInterval = roundDropInterval();
   s.dropAcc = 0;
   s.lockTimer = 0;
   s.lockResets = 0;
@@ -1196,7 +1195,7 @@ function makeLayout() {
   const proto = createSeat(9, false);
   withSeat(proto, () => {
     proto.grid = emptyGrid();
-    placeViruses(Math.min(84, 4 * level + 4));
+    placeViruses(Math.min(VIRUS_MAX, 4 * level + 4));
     fixInitialMatches();
   });
   return proto.grid;
@@ -1228,7 +1227,7 @@ function finishRound(winner, silent) {
   if (screen !== 'play') return;
   winner.crowns += 1;
   roundWinner = winner;
-  screen = winner.crowns >= 3 ? 'match' : 'round';
+  screen = winner.crowns >= VIRUS_MAX ? 'match' : 'round';
   seats.forEach((s) => { s.pill = null; s.phase = 'done'; });
   sfx(winner.index === 0 ? 'win' : 'over');
   if (!silent && net && net.live) sendNet({ t: 'end', winner: winner.index === 0 ? 'me' : 'you' });
@@ -1287,7 +1286,7 @@ function flinch() {
 }
 
 function crownText(n) {
-  return '★'.repeat(n) + '☆'.repeat(Math.max(0, 3 - n));
+  return String(n);
 }
 
 function updateHud() {
@@ -1332,7 +1331,7 @@ function syncBanner() {
     el.bannerMain.textContent = 'Далі';
   } else if (mode === 'round') {
     el.bannerTitle.textContent = mine ? 'Раунд твій' : 'Раунд за суперником';
-    el.bannerText.textContent = seats[0].crowns + ' : ' + seats[1].crowns + ' до трьох.';
+    el.bannerText.textContent = seats[0].crowns + ' : ' + seats[1].crowns + ' до ' + VIRUS_MAX + '.';
     el.bannerMain.textContent = 'Наступний раунд';
   } else if (mode === 'match') {
     el.bannerTitle.textContent = mine ? 'Матч твій' : 'Матч за суперником';
@@ -1668,6 +1667,7 @@ function sendStart() {
   net.arming = false;
   net.iAmHost = true;
   level = Number(el.level.value);
+  runStart = level;
   const layout = makeLayout();
   hideCount();
   sendNet({ t: 'start', level: level, speed: speed, grid: packGrid(layout), nick: myNick });
@@ -1712,6 +1712,7 @@ function onNetData(msg) {
     net.gotStart = true;
     net.iAmHost = false;
     level = msg.level;
+    if (msg.t === 'start') runStart = level;
     if (msg.speed && BASE[msg.speed]) speed = msg.speed;
     const layout = unpackGrid(msg.grid);
     if (msg.t === 'start') enterMatch(layout);
@@ -1839,8 +1840,10 @@ function rememberNicks() {
 }
 
 function enterMatch(layout) {
-  runStart = Number(el.level.value);
-  if (!layout) level = runStart;
+  if (!layout) {
+    runStart = Number(el.level.value);
+    level = runStart;
+  }
   score = 0;
   bestBefore = best;
   running = true;
@@ -2982,6 +2985,17 @@ function runTests() {
   seat.phase = 'menu';
   seat.pill = null;
   paused = false;
+  const savedRun = runStart;
+  speed = 'med';
+  runStart = 5;
+  level = 5;
+  assert('перший раунд іде обраним темпом', roundDropInterval() === BASE.med);
+  level = 6;
+  assert('наступний раунд швидший', roundDropInterval() < BASE.med && roundDropInterval() > MINI.med);
+  level = runStart + 40;
+  assert('темп не швидший за мінімум', roundDropInterval() === MINI.med);
+  assert('матч до максимуму вірусів', VIRUS_MAX === 84);
+  runStart = savedRun;
   speed = savedSpeed;
   level = savedLevel;
   renderBinds();
