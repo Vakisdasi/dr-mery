@@ -67,6 +67,28 @@
     border: 1px solid var(--line);
     background: #10241d;
   }
+  #lobbyBox {
+    margin-top: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #0c1c17;
+  }
+  #lobbyBox .hint { margin: 10px 12px; }
+  #lobbyList { display: flex; flex-direction: column; margin: 0; }
+  #lobbyList button {
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    border-radius: 0;
+    height: 44px;
+    padding: 0 12px;
+    text-align: left;
+    flex: 0 0 44px;
+  }
+  #lobbyList button:last-child { border-bottom: 0; }
+  #lobbyList button:hover { background: #1e4a3b; }
   .speeds, .pad { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .speeds button, .ghost, #start, #banner button, .pad button {
     border: 1px solid var(--line);
@@ -78,15 +100,6 @@
     border-color: #8fd9b0;
     background: #1e4a3b;
   }
-  #lobbyList { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-  #lobbyList button {
-    border: 1px solid var(--line);
-    background: #10241d;
-    border-radius: 12px;
-    padding: 8px 12px;
-    text-align: left;
-  }
-  #lobbyList button:hover { border-color: #8fd9b0; background: #1e4a3b; }
   #start {
     margin-top: 16px;
     background: #2f9e62;
@@ -253,13 +266,15 @@
 
     <label class="block" for="nick">Твій нік</label>
     <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
-    <label class="block" for="rivalNick">Нік, з ким хочеш грати</label>
-    <input id="rivalNick" type="text" maxlength="16" placeholder="необов’язково">
-    <p class="hint" id="netHint">Напиши лише свій нік і грай із ботом. Хто при вході побачить тебе в списку і підсяде. Або натисни чужий нік у списку, якщо хочеш зайти до когось. Щойно з’єднаєтесь, буде 10 секунд, і матч почнеться заново.</p>
+    <p class="hint" id="netHint">Напиши свій нік і грай із ботом. Хто побачить тебе в списку, підсяде. Або знайди чужий нік у вікні нижче і натисни «підсісти». Щойно з’єднаєтесь, буде 10 секунд, і матч почнеться заново.</p>
 
     <div class="block">Зараз грають із ботом</div>
-    <p class="hint" id="lobbyEmpty">Дивлюсь, хто вже грає…</p>
-    <div id="lobbyList"></div>
+    <label class="block" for="lobbyFind">Пошук за ніком</label>
+    <input id="lobbyFind" type="text" maxlength="16" placeholder="якщо нік далеко в списку" autocomplete="off">
+    <div id="lobbyBox">
+      <p class="hint" id="lobbyEmpty">Дивлюсь, хто вже грає…</p>
+      <div id="lobbyList"></div>
+    </div>
 
     <div class="block">Суперник</div>
     <div class="speeds" id="rivals">
@@ -443,8 +458,8 @@ const el = {
   hudLevel: document.getElementById('hudLevel'),
   tempo: document.getElementById('tempo'),
   nick: document.getElementById('nick'),
-  rivalNick: document.getElementById('rivalNick'),
   netHint: document.getElementById('netHint'),
+  lobbyFind: document.getElementById('lobbyFind'),
   lobbyEmpty: document.getElementById('lobbyEmpty'),
   lobbyList: document.getElementById('lobbyList'),
   netLine: document.getElementById('netLine'),
@@ -586,7 +601,6 @@ function loadStore() {
     if (opts.rival === 'bot' || opts.rival === 'human') rival = opts.rival;
     const nicks = JSON.parse(localStorage.getItem('dr-mmm-nicks') || '{}');
     if (nicks.me && el.nick) el.nick.value = nicks.me;
-    if (nicks.rival && el.rivalNick) el.rivalNick.value = nicks.rival;
   } catch (err) { /* приватний режим */ }
   el.menuBest.textContent = String(best);
   for (const btn of el.speeds.querySelectorAll('button')) {
@@ -1470,10 +1484,14 @@ function renderLobby() {
   if (!el.lobbyList || !el.lobbyEmpty) return;
   const now = Date.now();
   const mine = ((el.nick && el.nick.value) || myNick || '').trim().toLowerCase();
+  const q = ((el.lobbyFind && el.lobbyFind.value) || '').trim().toLowerCase();
   const names = [];
+  let total = 0;
   lobbySeen.forEach((row, key) => {
     if (now - row.at > 12000) { lobbySeen.delete(key); return; }
     if (mine && key === mine) return;
+    total += 1;
+    if (q && !key.includes(q)) return;
     names.push(row.nick);
   });
   names.sort((a, b) => a.localeCompare(b, 'uk'));
@@ -1488,7 +1506,8 @@ function renderLobby() {
   el.lobbyEmpty.hidden = names.length > 0;
   if (!names.length) {
     el.lobbyEmpty.hidden = false;
-    if (lobbyMq && lobbyMq.connected) el.lobbyEmpty.textContent = 'Поки ніхто не грає з ботом.';
+    if (q && total) el.lobbyEmpty.textContent = 'Такого ніка в списку немає.';
+    else if (lobbyMq && lobbyMq.connected) el.lobbyEmpty.textContent = 'Поки ніхто не грає з ботом.';
   }
 }
 
@@ -1510,7 +1529,7 @@ function syncLobby() {
 }
 
 function joinListed(nick) {
-  el.rivalNick.value = nick;
+  rivalNick = nick;
   if (rival !== 'bot') {
     rival = 'bot';
     document.querySelectorAll('#rivals button').forEach((btn) => {
@@ -1554,15 +1573,15 @@ function openLobby() {
       renderLobby();
     });
     lobbyMq.on('error', () => {
-      if (el.lobbyEmpty && !lobbySeen.size) el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+      if (el.lobbyEmpty && !lobbySeen.size) el.lobbyEmpty.textContent = 'Список зараз недоступний. Спробуй оновити сторінку.';
     });
     setInterval(renderLobby, 3000);
   }).catch(() => {
-    if (el.lobbyEmpty) el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+    if (el.lobbyEmpty) el.lobbyEmpty.textContent = 'Список зараз недоступний. Спробуй оновити сторінку.';
   });
   setTimeout(() => {
     if ((!lobbyMq || !lobbyMq.connected) && el.lobbyEmpty && !lobbySeen.size) {
-      el.lobbyEmpty.textContent = 'Список зараз недоступний. Нік можна вписати вручну.';
+      el.lobbyEmpty.textContent = 'Список зараз недоступний. Спробуй оновити сторінку.';
     }
   }, 8000);
 }
@@ -1812,7 +1831,6 @@ function netTick(dt) {
 
 function readNicks() {
   myNick = (el.nick.value || '').trim();
-  rivalNick = (el.rivalNick.value || '').trim();
   return myNick;
 }
 
@@ -1859,8 +1877,8 @@ function startGame() {
     return;
   }
   if (rivalNick && rivalNick.toLowerCase() === myNick.toLowerCase()) {
-    setNetLine('У другому полі має бути нік іншої людини.');
-    el.rivalNick.focus();
+    setNetLine('Це твій нік. Обери когось зі списку.');
+    rivalNick = '';
     return;
   }
   rememberNicks();
@@ -1879,7 +1897,7 @@ function startGame() {
   }
   enterMatch();
   if (rival !== 'human') {
-    setNetLine('Ти в мережі як «' + myNick + '». Хто напише цей нік, підсяде замість бота.');
+    setNetLine('Ти в мережі як «' + myNick + '». Хто натисне твій нік у списку, підсяде замість бота.');
     openNet();
   } else {
     setNetLine('');
@@ -2746,7 +2764,10 @@ el.soundBtn.addEventListener('click', () => {
   saveOpts();
   if (soundOn) { ensureAudio(); sfx('rotate'); }
 });
-el.start.addEventListener('click', startGame);
+el.start.addEventListener('click', () => {
+  rivalNick = '';
+  startGame();
+});
 document.getElementById('openKeysMenu').addEventListener('click', openKeys);
 document.getElementById('openKeysPlay').addEventListener('click', openKeys);
 document.getElementById('bannerKeys').addEventListener('click', openKeys);
@@ -2973,6 +2994,7 @@ loadStore();
 fitCanvases();
 openLobby();
 if (el.nick) el.nick.addEventListener('input', renderLobby);
+if (el.lobbyFind) el.lobbyFind.addEventListener('input', renderLobby);
 window.__mmm = {
   dump: function () {
     return seat.grid.map(function (row) {
