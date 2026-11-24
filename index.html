@@ -289,7 +289,7 @@
     </div>
 
     <button type="button" id="start">Почати гру</button>
-    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, і при дотику він спалює три клітини під собою. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
+    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, а коли долітає — вибухає і спалює випадково одну, дві або три клітини в пляшці. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
     <p class="howto" id="keyBlurb"></p>
     <p class="howto" id="keyBlurb2"></p>
     <button type="button" class="ghost" id="openKeysMenu">Змінити клавіші</button>
@@ -1007,33 +1007,70 @@ function tryMoveCake(dir) {
   return true;
 }
 
+function pickCakeTargets() {
+  const pool = [];
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (seat.grid[y][x]) pool.push([x, y]);
+    }
+  }
+  const n = Math.min(pool.length, 1 + Math.floor(Math.random() * 3));
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(Math.random() * (pool.length - i));
+    const swap = pool[i];
+    pool[i] = pool[j];
+    pool[j] = swap;
+  }
+  return pool.slice(0, n);
+}
+
+function explodeCake(x, y) {
+  if (seat.sim) return;
+  const colors = ['#f47aaa', '#fff6f0', '#e23b5a', '#ffd7e8'];
+  const cx = OX + (x + 0.5) * CELL;
+  const cy = OY + (Math.max(0, y) + 0.5) * CELL;
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = 90 + Math.random() * 220;
+    seat.particles.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v - 40,
+      age: 0,
+      life: 360 + Math.random() * 240,
+      color: colors[i % colors.length],
+    });
+  }
+  seat.shake = 1;
+}
+
 function bakeCake() {
   if (!seat.cake) return;
   const x = seat.cake.x;
-  let y = seat.cake.y;
+  const y = seat.cake.y;
+  const hits = pickCakeTargets();
   seat.cake = null;
-  while (y + 1 < ROWS && !seat.grid[y + 1][x]) y++;
-  if (y + 1 >= ROWS || !seat.grid[y + 1][x]) {
-    spawn();
-    return;
-  }
+  explodeCake(x, y);
   let viruses = 0;
-  for (let i = 1; i <= 3; i++) {
-    const yy = y + i;
-    if (yy >= ROWS || !seat.grid[yy][x]) continue;
-    const cell = seat.grid[yy][x];
-    if (cell.t === 'v') {
-      viruses++;
-      burst(x, yy, cell.c);
-    }
-    seat.grid[yy][x] = null;
+  for (const hit of hits) {
+    const cell = seat.grid[hit[1]][hit[0]];
+    if (!cell) continue;
+    if (cell.t === 'v') viruses++;
+    burst(hit[0], hit[1], cell.c);
+    seat.grid[hit[1]][hit[0]] = null;
   }
   const pts = scoreFor(viruses);
   if (pts) {
     addScore(pts);
-    seat.popups.push({ x: OX + (x + 0.5) * CELL, y: OY + (y + 1) * CELL, text: '+' + pts, age: 0 });
+    const spot = hits.length ? hits[0] : [x, Math.max(0, y)];
+    seat.popups.push({ x: OX + (spot[0] + 0.5) * CELL, y: OY + spot[1] * CELL, text: '+' + pts, age: 0 });
   }
-  sfx(viruses ? 'clear' : 'pop');
+  sfx(hits.length ? 'boom' : 'pop');
+  if (!hits.length) {
+    spawn();
+    return;
+  }
   if (hasFloating()) { seat.phase = 'grav'; seat.gravAcc = 0; }
   else afterSettle();
 }
@@ -1242,7 +1279,6 @@ function spawn() {
     seat.lockTimer = 0;
     seat.lockResets = 0;
     seat.phase = 'control';
-    seat.toast = { text: 'торт Мері', age: 0 };
     sfx('chime');
     return;
   }
@@ -2236,31 +2272,14 @@ function updateBot(dt) {
 }
 
 function steerCake(dt) {
-  let best = seat.cake.x;
-  let bestScore = -1;
-  for (let x = 0; x < COLS; x++) {
-    if (seat.cake.y >= 0 && seat.grid[seat.cake.y][x]) continue;
-    let y = seat.cake.y;
-    while (y + 1 < ROWS && !seat.grid[y + 1][x]) y++;
-    let value = 0;
-    if (y + 1 < ROWS && seat.grid[y + 1][x]) {
-      for (let i = 1; i <= 3; i++) {
-        const cell = y + i < ROWS ? seat.grid[y + i][x] : null;
-        if (cell && cell.t === 'v') value += 3;
-        else if (cell) value += 1;
-      }
-    }
-    const nearer = Math.abs(x - seat.cake.x) < Math.abs(best - seat.cake.x);
-    if (value > bestScore || (value === bestScore && nearer)) {
-      bestScore = value;
-      best = x;
-    }
+  if (!seat.plan || seat.plan.token !== seat.token) {
+    seat.plan = { x: Math.floor(Math.random() * COLS), token: seat.token };
   }
   seat.think += dt;
   if (seat.think < 210) return;
   seat.think = 0;
-  if (seat.cake.x === best) return;
-  tryMoveCake(seat.cake.x < best ? 1 : -1);
+  if (seat.cake.x === seat.plan.x) return;
+  tryMoveCake(seat.cake.x < seat.plan.x ? 1 : -1);
 }
 
 function updateCake(dt) {
@@ -2463,10 +2482,6 @@ function drawCake(context, x, y) {
   const py = OY + y * CELL;
   const s = CELL;
   context.save();
-  context.textAlign = 'center';
-  context.font = '700 ' + Math.max(11, Math.round(s * 0.36)) + 'px Trebuchet MS, Segoe UI, sans-serif';
-  context.fillStyle = '#fff8df';
-  context.fillText('торт Мері', px + s / 2, py - 3);
   context.fillStyle = 'rgba(90, 40, 62, 0.28)';
   context.beginPath();
   context.ellipse(px + s / 2, py + s * 0.9, s * 0.4, s * 0.07, 0, 0, Math.PI * 2);
@@ -2748,6 +2763,10 @@ function sfx(kind) {
     tone(440, 0.08, 'square', 0.04, 0);
     tone(560, 0.09, 'square', 0.04, 0.07);
     tone(700, 0.12, 'square', 0.04, 0.14);
+  } else if (kind === 'boom') {
+    tone(120, 0.14, 'square', 0.05, 0);
+    tone(70, 0.22, 'triangle', 0.06, 0.03);
+    tone(480, 0.08, 'square', 0.03, 0.02);
   } else if (kind === 'chime') {
     [523, 659, 784, 659, 880].forEach((f, i) => tone(f, 0.1, 'square', 0.035, i * 0.09));
   } else if (kind === 'win') {
@@ -3153,20 +3172,34 @@ function runTests() {
   assert('чотири в стовпчик', findClearSet().size === 4);
   assert('четвірка вірусів без торта', !cakeEarned(findClearSet()));
   seat.grid = emptyGrid();
+  const planted = [[1, 15], [2, 15], [3, 14], [4, 15], [5, 13]];
+  planted.forEach((cell, i) => {
+    seat.grid[cell[1]][cell[0]] = { t: i < 3 ? 'v' : 'p', c: 0, id: i + 1 };
+  });
   seat.cake = { x: 2, y: 12 };
-  seat.grid[13][2] = { t: 'v', c: 0 };
-  seat.grid[14][2] = { t: 'p', c: 1, id: 4 };
-  seat.grid[15][2] = { t: 'v', c: 2 };
   seat.phase = 'control';
   seat.cakeQueue = 0;
   seat.sim = true;
   const savedBest = best;
+  const realRandom = Math.random;
+  const rolls = [0, 0.99];
+  let rollAt = 0;
+  Math.random = () => (rollAt < rolls.length ? rolls[rollAt++] : 0.5);
   bakeCake();
+  Math.random = realRandom;
   seat.sim = false;
   best = savedBest;
   try { localStorage.setItem('dr-mmm-best', String(best)); } catch (err) { /* тест */ }
   el.menuBest.textContent = String(best);
-  assert('торт палить три клітини під собою', !seat.grid[13][2] && !seat.grid[14][2] && !seat.grid[15][2] && !seat.cake);
+  assert('торт вибухає і палить одну випадкову', !seat.cake && !seat.grid[15][4] && seat.grid[13][5] && seat.grid[14][3] && seat.grid[15][1] && seat.grid[15][2]);
+  seat.grid = emptyGrid();
+  for (let x = 0; x < 6; x++) seat.grid[15][x] = { t: 'v', c: 0 };
+  rollAt = 0;
+  const wide = [0.99, 0, 0, 0];
+  Math.random = () => (rollAt < wide.length ? wide[rollAt++] : 0);
+  const hits = pickCakeTargets();
+  Math.random = realRandom;
+  assert('вибух бере від 1 до 3', hits.length === 3);
 
   seat.grid = emptyGrid();
   for (let i = 0; i < 4; i++) seat.grid[12 + i][i] = { t: 'v', c: 0 };
