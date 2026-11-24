@@ -289,7 +289,7 @@
     </div>
 
     <button type="button" id="start">Почати гру</button>
-    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
+    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, і при дотику він спалює три клітини під собою. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
     <p class="howto" id="keyBlurb"></p>
     <p class="howto" id="keyBlurb2"></p>
     <button type="button" class="ghost" id="openKeysMenu">Змінити клавіші</button>
@@ -553,6 +553,8 @@ function createSeat(index, bot) {
     das: 0,
     dasOn: false,
     garbage: [],
+    cake: null,
+    cakeQueue: 0,
     crowns: 0,
     plan: null,
     think: 0,
@@ -941,10 +943,99 @@ function nudgeLock() {
 }
 
 function hardDrop() {
+  if (seat.cake && !seat.pill && seat.phase === 'control' && !paused) {
+    let guard = 0;
+    while (guard++ < ROWS && !cakeBlocked()) seat.cake.y++;
+    bakeCake();
+    return;
+  }
   if (!seat.pill || seat.phase !== 'control' || paused) return;
   let guard = 0;
   while (guard++ < 20 && classify(seat.pill.x, seat.pill.y + 1, seat.pill.rot).ok) seat.pill.y++;
   lockPill();
+}
+
+function cakeEarned(set) {
+  const virusIn = (cells) => cells.some(([x, y]) => seat.grid[y][x] && seat.grid[y][x].t === 'v');
+  for (let y = 0; y < ROWS; y++) {
+    let x = 0;
+    while (x < COLS) {
+      if (!set.has(x + ',' + y) || !seat.grid[y][x]) { x++; continue; }
+      const c = seat.grid[y][x].c;
+      const cells = [[x, y]];
+      let x2 = x + 1;
+      while (x2 < COLS && set.has(x2 + ',' + y) && seat.grid[y][x2] && seat.grid[y][x2].c === c) {
+        cells.push([x2, y]);
+        x2++;
+      }
+      if (cells.length >= 5 && virusIn(cells)) return true;
+      x = x2;
+    }
+  }
+  for (let x = 0; x < COLS; x++) {
+    let y = 0;
+    while (y < ROWS) {
+      if (!set.has(x + ',' + y) || !seat.grid[y][x]) { y++; continue; }
+      const c = seat.grid[y][x].c;
+      const cells = [[x, y]];
+      let y2 = y + 1;
+      while (y2 < ROWS && set.has(x + ',' + y2) && seat.grid[y2][x] && seat.grid[y2][x].c === c) {
+        cells.push([x, y2]);
+        y2++;
+      }
+      if (cells.length >= 5 && virusIn(cells)) return true;
+      y = y2;
+    }
+  }
+  return false;
+}
+
+function cakeBlocked() {
+  if (!seat.cake) return true;
+  const y = seat.cake.y + 1;
+  if (y >= ROWS) return true;
+  return !!seat.grid[y][seat.cake.x];
+}
+
+function tryMoveCake(dir) {
+  if (!seat.cake || seat.phase !== 'control' || paused) return false;
+  const x = seat.cake.x + dir;
+  if (x < 0 || x >= COLS) return false;
+  if (seat.cake.y >= 0 && seat.grid[seat.cake.y][x]) return false;
+  seat.cake.x = x;
+  seat.lockTimer = 0;
+  return true;
+}
+
+function bakeCake() {
+  if (!seat.cake) return;
+  const x = seat.cake.x;
+  let y = seat.cake.y;
+  seat.cake = null;
+  while (y + 1 < ROWS && !seat.grid[y + 1][x]) y++;
+  if (y + 1 >= ROWS || !seat.grid[y + 1][x]) {
+    spawn();
+    return;
+  }
+  let viruses = 0;
+  for (let i = 1; i <= 3; i++) {
+    const yy = y + i;
+    if (yy >= ROWS || !seat.grid[yy][x]) continue;
+    const cell = seat.grid[yy][x];
+    if (cell.t === 'v') {
+      viruses++;
+      burst(x, yy, cell.c);
+    }
+    seat.grid[yy][x] = null;
+  }
+  const pts = scoreFor(viruses);
+  if (pts) {
+    addScore(pts);
+    seat.popups.push({ x: OX + (x + 0.5) * CELL, y: OY + (y + 1) * CELL, text: '+' + pts, age: 0 });
+  }
+  sfx(viruses ? 'clear' : 'pop');
+  if (hasFloating()) { seat.phase = 'grav'; seat.gravAcc = 0; }
+  else afterSettle();
 }
 
 function lineInfo(set) {
@@ -1063,6 +1154,7 @@ function beginClear(set) {
   seat.clearSet.colors = seen;
   seat.clearSet.lines = info.lines;
   seat.clearSet.lineColors = info.colors;
+  if (!seat.sim && cakeEarned(set)) seat.cakeQueue = (seat.cakeQueue || 0) + 1;
   if (viruses >= 2 || info.lines >= 2) seat.shake = 1;
   sfx(viruses ? 'clear' : 'pop');
 }
@@ -1140,6 +1232,20 @@ function dropGarbage() {
 
 function spawn() {
   if (seat.sim) return;
+  if (seat.cakeQueue > 0) {
+    seat.cakeQueue--;
+    seat.pill = null;
+    seat.cake = { x: 3, y: -1 };
+    seat.token++;
+    seat.plan = null;
+    seat.dropAcc = 0;
+    seat.lockTimer = 0;
+    seat.lockResets = 0;
+    seat.phase = 'control';
+    seat.toast = { text: 'торт Мері', age: 0 };
+    sfx('chime');
+    return;
+  }
   if (dropGarbage()) {
     seat.phase = 'grav';
     seat.gravAcc = 0;
@@ -1182,6 +1288,8 @@ function blankSeat(s) {
   s.das = 0;
   s.dasOn = false;
   s.garbage = [];
+  s.cake = null;
+  s.cakeQueue = 0;
   s.plan = null;
   s.think = 0;
   s.sim = false;
@@ -1734,9 +1842,10 @@ function applyRemoteState(msg) {
   const far = seats[1];
   far.grid = unpackGrid(msg.g);
   far.pill = msg.p || null;
+  far.cake = msg.k || null;
   if (msg.n) far.nextColors = msg.n;
   far.points = msg.pts || 0;
-  far.phase = far.pill ? 'control' : 'idle';
+  far.phase = (far.pill || far.cake) ? 'control' : 'idle';
   far.remote = true;
   far.bot = false;
 }
@@ -1893,6 +2002,7 @@ function netTick(dt) {
     t: 's',
     g: packGrid(s.grid),
     p: s.pill ? { x: s.pill.x, y: s.pill.y, rot: s.pill.rot, a: s.pill.a, b: s.pill.b } : null,
+    k: s.cake ? { x: s.cake.x, y: s.cake.y } : null,
     n: s.nextColors,
     pts: s.points,
   });
@@ -2125,7 +2235,75 @@ function updateBot(dt) {
   }
 }
 
+function steerCake(dt) {
+  let best = seat.cake.x;
+  let bestScore = -1;
+  for (let x = 0; x < COLS; x++) {
+    if (seat.cake.y >= 0 && seat.grid[seat.cake.y][x]) continue;
+    let y = seat.cake.y;
+    while (y + 1 < ROWS && !seat.grid[y + 1][x]) y++;
+    let value = 0;
+    if (y + 1 < ROWS && seat.grid[y + 1][x]) {
+      for (let i = 1; i <= 3; i++) {
+        const cell = y + i < ROWS ? seat.grid[y + i][x] : null;
+        if (cell && cell.t === 'v') value += 3;
+        else if (cell) value += 1;
+      }
+    }
+    const nearer = Math.abs(x - seat.cake.x) < Math.abs(best - seat.cake.x);
+    if (value > bestScore || (value === bestScore && nearer)) {
+      bestScore = value;
+      best = x;
+    }
+  }
+  seat.think += dt;
+  if (seat.think < 210) return;
+  seat.think = 0;
+  if (seat.cake.x === best) return;
+  tryMoveCake(seat.cake.x < best ? 1 : -1);
+}
+
+function updateCake(dt) {
+  if (seat.bot) steerCake(dt);
+  const map = seatBinds();
+  const left = (!seat.bot && keys.has(map.left)) || (seat.index === 0 && padHold.left);
+  const right = (!seat.bot && keys.has(map.right)) || (seat.index === 0 && padHold.right);
+  let dir = 0;
+  if (!seat.bot) {
+    if (left && !right) dir = -1;
+    else if (right && !left) dir = 1;
+  }
+  if (!dir) {
+    if (!seat.bot) { seat.dasDir = 0; seat.das = 0; seat.dasOn = false; }
+  } else if (dir !== seat.dasDir) {
+    seat.dasDir = dir;
+    seat.das = 0;
+    seat.dasOn = false;
+    tryMoveCake(dir);
+  } else {
+    seat.das += dt;
+    const need = seat.dasOn ? 40 : 160;
+    if (seat.das >= need) {
+      seat.das -= need;
+      seat.dasOn = true;
+      tryMoveCake(dir);
+    }
+  }
+  const soft = !seat.bot && (keys.has(map.soft) || (seat.index === 0 && padHold.soft));
+  seat.dropAcc += dt;
+  if (!cakeBlocked() && seat.dropAcc >= (soft ? 90 : 700)) {
+    seat.dropAcc = 0;
+    seat.cake.y++;
+    seat.lockTimer = 0;
+  }
+  if (cakeBlocked()) {
+    seat.lockTimer += dt;
+    if (seat.lockTimer >= (soft ? 80 : 280)) bakeCake();
+  } else seat.lockTimer = 0;
+}
+
 function updateControl(dt) {
+  if (seat.cake && !seat.pill) { updateCake(dt); return; }
   if (seat.bot) updateBot(dt);
   const map = seatBinds();
   const left = (!seat.bot && keys.has(map.left)) || (seat.index === 0 && padHold.left);
@@ -2280,6 +2458,45 @@ function joinsAt(x, y) {
   };
 }
 
+function drawCake(context, x, y) {
+  const px = OX + x * CELL;
+  const py = OY + y * CELL;
+  const s = CELL;
+  context.save();
+  context.textAlign = 'center';
+  context.font = '700 ' + Math.max(11, Math.round(s * 0.36)) + 'px Trebuchet MS, Segoe UI, sans-serif';
+  context.fillStyle = '#fff8df';
+  context.fillText('торт Мері', px + s / 2, py - 3);
+  context.fillStyle = 'rgba(90, 40, 62, 0.28)';
+  context.beginPath();
+  context.ellipse(px + s / 2, py + s * 0.9, s * 0.4, s * 0.07, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#ffd7e8';
+  context.beginPath();
+  context.ellipse(px + s / 2, py + s * 0.84, s * 0.42, s * 0.08, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#f47aaa';
+  roundRect(context, px + s * 0.18, py + s * 0.48, s * 0.64, s * 0.36, [4, 4, 6, 6]);
+  context.fill();
+  context.fillStyle = '#ff9bc4';
+  context.fillRect(px + s * 0.18, py + s * 0.48, s * 0.64, s * 0.1);
+  context.fillStyle = '#fff6f0';
+  context.beginPath();
+  context.ellipse(px + s / 2, py + s * 0.48, s * 0.36, s * 0.12, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#e23b5a';
+  context.beginPath();
+  context.arc(px + s * 0.38, py + s * 0.34, s * 0.09, 0, Math.PI * 2);
+  context.arc(px + s * 0.62, py + s * 0.36, s * 0.08, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#3e9a62';
+  context.beginPath();
+  context.ellipse(px + s * 0.34, py + s * 0.24, s * 0.07, s * 0.035, -0.6, 0, Math.PI * 2);
+  context.ellipse(px + s * 0.66, py + s * 0.26, s * 0.06, s * 0.03, 0.7, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
 function blinkOff() {
   if (seat.phase !== 'clear') return false;
   return Math.floor(seat.clearAge / 70) % 2 === 1;
@@ -2345,6 +2562,7 @@ function draw() {
       drawHalf(ctx, OX + c.x * CELL, OY + c.y * CELL, CELL, c.k === 'a' ? seat.pill.a : seat.pill.b, joins);
     }
   }
+  if (seat.cake) drawCake(ctx, seat.cake.x, seat.cake.y);
 
   for (const p of seat.particles) {
     ctx.globalAlpha = 1 - p.age / p.life;
@@ -2923,12 +3141,32 @@ function runTests() {
   assert('чотири в ряд', findClearSet().size === 4);
   seat.grid[15][4] = { t: 'p', c: 0, id: 2 };
   assert('п’ять у ряд', findClearSet().size === 5);
+  assert('п’ятірка з вірусом кличе торт', cakeEarned(findClearSet()));
   seat.grid[15][5] = { t: 'p', c: 1, id: 3 };
   assert('інший колір зупиняє ряд', findClearSet().size === 5);
+  seat.grid = emptyGrid();
+  for (let x = 0; x < 5; x++) seat.grid[15][x] = { t: 'p', c: 0, id: x + 1 };
+  assert('п’ятірка без вірусу без торта', !cakeEarned(findClearSet()));
 
   seat.grid = emptyGrid();
   for (let y = 12; y <= 15; y++) seat.grid[y][2] = { t: 'v', c: 1 };
   assert('чотири в стовпчик', findClearSet().size === 4);
+  assert('четвірка вірусів без торта', !cakeEarned(findClearSet()));
+  seat.grid = emptyGrid();
+  seat.cake = { x: 2, y: 12 };
+  seat.grid[13][2] = { t: 'v', c: 0 };
+  seat.grid[14][2] = { t: 'p', c: 1, id: 4 };
+  seat.grid[15][2] = { t: 'v', c: 2 };
+  seat.phase = 'control';
+  seat.cakeQueue = 0;
+  seat.sim = true;
+  const savedBest = best;
+  bakeCake();
+  seat.sim = false;
+  best = savedBest;
+  try { localStorage.setItem('dr-mmm-best', String(best)); } catch (err) { /* тест */ }
+  el.menuBest.textContent = String(best);
+  assert('торт палить три клітини під собою', !seat.grid[13][2] && !seat.grid[14][2] && !seat.grid[15][2] && !seat.cake);
 
   seat.grid = emptyGrid();
   for (let i = 0; i < 4; i++) seat.grid[12 + i][i] = { t: 'v', c: 0 };
