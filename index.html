@@ -262,7 +262,7 @@
       <button type="button" data-speed="med" aria-pressed="true">Середньо</button>
       <button type="button" data-speed="hi" aria-pressed="false">Швидко</button>
     </div>
-    <p class="hint">Швидкість задає і падіння, і очки. Перший раунд іде обраним темпом, кожен наступний — швидше. Очки дають тільки знищені віруси.</p>
+    <p class="hint">Швидкість задає і падіння, і очки. Перший раунд іде обраним темпом, далі кожен раунд трохи швидший. Приріст утричі спокійніший, ніж був. Очки дають тільки знищені віруси.</p>
 
     <label class="block" for="nick">Твій нік</label>
     <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
@@ -281,7 +281,7 @@
       <button type="button" data-rival="bot" aria-pressed="true">Бот</button>
       <button type="button" data-rival="human" aria-pressed="false">Друг поруч</button>
     </div>
-    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Матч до 84 раундів, як максимум вірусів у пляшці.</p>
+    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Між раундами 10 секунд, щоб перевести дух. Матч до 84 раундів, як максимум вірусів у пляшці.</p>
 
     <div class="block">Звук</div>
     <div class="speeds">
@@ -496,6 +496,8 @@ const el = {
 let running = false;
 let paused = false;
 let countLeft = 0;
+let gapLeft = 0;
+let gapTimer = 0;
 let bannerMode = '';
 let level = 5;
 let runStart = 5;
@@ -1039,7 +1041,7 @@ function lockPill() {
 
 function roundDropInterval() {
   const steps = Math.max(0, level - runStart);
-  return Math.max(MINI[speed], Math.round(BASE[speed] * Math.pow(0.86, steps)));
+  return Math.max(MINI[speed], Math.round(BASE[speed] * Math.pow(0.86, steps / 3)));
 }
 
 function beginClear(set) {
@@ -1233,6 +1235,7 @@ function finishRound(winner, silent) {
   if (!silent && net && net.live) sendNet({ t: 'end', winner: winner.index === 0 ? 'me' : 'you' });
   syncBanner();
   updateHud();
+  if (screen === 'round') beginGap();
 }
 
 function beginWin() {
@@ -1245,7 +1248,57 @@ function beginOver() {
   finishRound(seats[1 - seat.index]);
 }
 
+function clearGap() {
+  if (gapTimer) clearInterval(gapTimer);
+  gapTimer = 0;
+  gapLeft = 0;
+  if (el.count && el.countWho && el.countWho.textContent.indexOf('Раунд') === 0) el.count.hidden = true;
+}
+
+function showGap(left) {
+  const n = Math.max(0, Math.round(Number(left) || 0));
+  const changed = n !== gapLeft && n > 0;
+  gapLeft = n;
+  const mine = roundWinner && roundWinner.index === 0;
+  if (el.countWho) el.countWho.textContent = mine ? 'Раунд твій' : 'Раунд за суперником';
+  if (el.countNum) el.countNum.textContent = String(n);
+  if (el.countNote) el.countNote.textContent = seats[0].crowns + ' : ' + seats[1].crowns + '. Можна перевести дух.';
+  if (el.count) el.count.hidden = n <= 0;
+  if (changed) {
+    ensureAudio();
+    tone(n === 1 ? 660 : 440, 0.07, 'square', 0.05);
+  }
+}
+
+function startGapTimer(seconds) {
+  if (gapTimer) clearInterval(gapTimer);
+  const due = performance.now() + seconds * 1000;
+  gapTimer = setInterval(() => {
+    if (screen !== 'round') { clearGap(); return; }
+    const left = Math.ceil((due - performance.now()) / 1000);
+    if (left <= 0) {
+      clearGap();
+      nextRound();
+      return;
+    }
+    if (left !== gapLeft) {
+      showGap(left);
+      if (net && net.live && net.iAmHost) sendNet({ t: 'gap', left: left });
+    }
+  }, 200);
+}
+
+function beginGap() {
+  clearGap();
+  if (screen !== 'round') return;
+  showGap(10);
+  if (net && net.live && !net.iAmHost) return;
+  if (net && net.live) sendNet({ t: 'gap', left: 10 });
+  startGapTimer(10);
+}
+
 function nextRound() {
+  clearGap();
   if (screen === 'match') {
     if (net && net.live && !net.iAmHost) { sendNet({ t: 'again' }); return; }
     startGame();
@@ -1355,6 +1408,7 @@ function togglePause() {
 }
 
 function goMenu() {
+  clearGap();
   closeKeys();
   running = false;
   paused = false;
@@ -1709,6 +1763,7 @@ function onNetData(msg) {
     if (msg.t === 'next' && screen !== 'round') return;
     if (msg.nick) remoteNick = msg.nick;
     hideCount();
+    clearGap();
     net.gotStart = true;
     net.iAmHost = false;
     level = msg.level;
@@ -1724,6 +1779,10 @@ function onNetData(msg) {
   if (msg.t === 'junk' && screen === 'play' && msg.colors) {
     for (const c of msg.colors) seats[0].garbage.push(c);
     seats[0].toast = { text: 'Атака +' + msg.colors.length, age: 0 };
+    return;
+  }
+  if (msg.t === 'gap' && screen === 'round') {
+    showGap(msg.left);
     return;
   }
   if (msg.t === 'end' && screen === 'play') {
@@ -1768,7 +1827,16 @@ function onNetGone() {
     syncLobby();
     return;
   }
-  if (was && running && screen === 'play') {
+  if (was && running && screen === 'round') {
+    seats[1].bot = true;
+    seats[1].held = false;
+    seats[1].remote = false;
+    setNetLine('«' + (remoteNick || rivalNick) + '» вийшов. Далі грає бот.');
+    if (!gapTimer && gapLeft > 0) startGapTimer(gapLeft);
+    syncBotPause();
+    renderKeySummary();
+    updateHud();
+  } else if (was && running && screen === 'play') {
     seats[1].bot = true;
     seats[1].held = false;
     if (!seats[1].pill && (seats[1].phase === 'idle' || seats[1].phase === 'done')) {
@@ -2697,7 +2765,7 @@ function onKeyDown(e) {
   }
   if (e.code === 'Enter') {
     if (paused) togglePause();
-    else if (screen === 'round') nextRound();
+    else if (screen === 'round' && !gapLeft) nextRound();
     else if (screen === 'match') startGame();
   }
   const owner = ownerOf(e.code);
@@ -2790,7 +2858,7 @@ el.toMenu.addEventListener('click', goMenu);
 document.getElementById('botPause').addEventListener('click', toggleBotHold);
 document.getElementById('board1').addEventListener('click', toggleBotHold);
 el.bannerMain.addEventListener('click', () => {
-  if (countLeft > 0) return;
+  if (countLeft > 0 || gapLeft > 0) return;
   if (screen === 'round') nextRound();
   else if (screen === 'match') startGame();
   else if (paused) togglePause();
@@ -2992,6 +3060,8 @@ function runTests() {
   assert('перший раунд іде обраним темпом', roundDropInterval() === BASE.med);
   level = 6;
   assert('наступний раунд швидший', roundDropInterval() < BASE.med && roundDropInterval() > MINI.med);
+  level = 8;
+  assert('три раунди як раніше один', roundDropInterval() === Math.round(BASE.med * 0.86));
   level = runStart + 40;
   assert('темп не швидший за мінімум', roundDropInterval() === MINI.med);
   assert('матч до максимуму вірусів', VIRUS_MAX === 84);
