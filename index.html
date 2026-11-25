@@ -234,6 +234,53 @@
   }
   #tests.bad { color: #ff8d8d; }
   .src { margin-top: 16px; color: #8eaea2; font-size: 13px; line-height: 1.4; }
+  body.mobile #app { padding: 10px 10px 20px; }
+  body.mobile h1 { font-size: 32px; }
+  body.mobile .hero { gap: 10px; }
+  body.mobile .hero svg { width: 64px; height: 76px; }
+  body.mobile #play { gap: 8px; }
+  body.mobile .matchbar {
+    width: 100% !important;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+  body.mobile .matchbar .who { flex: 1 1 40%; font-size: 14px; }
+  body.mobile .matchbar .vs { flex: 1 1 100%; order: -1; }
+  body.mobile .vs > b { font-size: 22px; }
+  body.mobile .boards { gap: 0; width: 100%; justify-content: center; }
+  body.mobile .board-wrap.rival { display: none !important; }
+  body.mobile #botPause,
+  body.mobile #keySummary,
+  body.mobile #openKeysPlay { display: none !important; }
+  body.mobile #pad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "left ccw cw"
+      "right down hard";
+    gap: 10px;
+    width: min(360px, 100%);
+    margin: 12px auto 0;
+  }
+  body.mobile #pad button {
+    min-width: 0;
+    min-height: 56px;
+    font-size: 22px;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.mobile #pad [data-act="left"] { grid-area: left; }
+  body.mobile #pad [data-act="ccw"] { grid-area: ccw; }
+  body.mobile #pad [data-act="cw"] { grid-area: cw; }
+  body.mobile #pad [data-act="right"] { grid-area: right; }
+  body.mobile #pad [data-act="down"] { grid-area: down; }
+  body.mobile #pad [data-act="hard"] { grid-area: hard; }
+  body.mobile #banner { inset: 0; border-radius: 16px; }
+  body.mobile #banner h3 { font-size: 26px; }
+  body.mobile #count b { font-size: 72px; }
+  body.mobile #feast p { font-size: 24px; }
+  body.mobile #keyOverlay .card { width: min(440px, 100%); }
 </style>
 </head>
 <body>
@@ -298,7 +345,7 @@
       <button type="button" data-rival="bot" aria-pressed="true">Бот</button>
       <button type="button" data-rival="human" aria-pressed="false">Друг поруч</button>
     </div>
-    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Між раундами 10 секунд, щоб перевести дух. Матч до 84 раундів, як максимум вірусів у пляшці.</p>
+    <p class="hint">Гра завжди на двох. Хто перший очистить пляшку — або в кого суперник заб’є шийку — бере раунд. Дві лінії й більше за раз кидають половинки вітамінів у чужу пляшку. Між раундами 10 секунд, щоб перевести дух. Матч до 84 раундів, як максимум вірусів у пляшці. На телефоні видно лише твою пляшку; суперник грає далі, просто його банку не показуємо.</p>
 
     <div class="block">Звук</div>
     <div class="speeds">
@@ -356,7 +403,7 @@
           <button type="button" data-act="hard" tabindex="-1">вниз</button>
         </div>
       </div>
-      <div class="board-wrap">
+      <div class="board-wrap rival">
         <div class="seat-label"><span id="name1b">Бот</span></div>
         <canvas id="next1" class="preview" width="160" height="72"></canvas>
         <canvas id="board1" width="360" height="640"></canvas>
@@ -2864,11 +2911,24 @@ function drawNext() {
   drawHalf(nctx, x0 + s, y, s, seat.nextColors.b, { l: 1, r: 0, u: 0, d: 0 });
 }
 
+let mobileLayout = false;
+
+function syncMobileLayout() {
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  mobileLayout = window.innerWidth < 760 || (coarse && window.innerWidth < 980);
+  document.body.classList.toggle('mobile', mobileLayout);
+  return mobileLayout;
+}
+
 function measureBoards() {
-  const gap = 56;
-  const maxW = Math.max(300, Math.floor((window.innerWidth - 40 - gap) / 2));
-  const maxH = Math.max(560, window.innerHeight - 118);
-  let cell = 52;
+  const solo = mobileLayout;
+  const gap = solo ? 0 : 56;
+  const boards = solo ? 1 : 2;
+  const maxW = Math.max(260, Math.floor((window.innerWidth - (solo ? 20 : 40) - gap) / boards));
+  const chrome = solo ? 210 : 118;
+  const maxH = Math.max(solo ? 380 : 560, window.innerHeight - chrome);
+  let cell = solo ? 58 : 52;
+  const floor = solo ? 20 : 28;
   const pack = (c) => {
     const ox = Math.max(14, Math.round(c * 0.42));
     const oy = Math.max(18, Math.round(c * 0.55));
@@ -2883,7 +2943,7 @@ function measureBoards() {
     };
   };
   let box = pack(cell);
-  while (cell > 28 && (box.w > maxW || box.h + box.nh + 8 > maxH)) {
+  while (cell > floor && (box.w > maxW || box.h + box.nh + 8 > maxH)) {
     cell -= 1;
     box = pack(cell);
   }
@@ -2897,11 +2957,16 @@ function measureBoards() {
 }
 
 function fitCanvases() {
+  syncMobileLayout();
   measureBoards();
   dpr = Math.min(2, window.devicePixelRatio || 1);
   ndpr = dpr;
   const bar = document.querySelector('.matchbar');
-  if (bar) bar.style.width = Math.min(window.innerWidth - 32, W * 2 + 56) + 'px';
+  if (bar) {
+    bar.style.width = mobileLayout
+      ? '100%'
+      : Math.min(window.innerWidth - 32, W * 2 + 56) + 'px';
+  }
   seats.forEach((s, i) => {
     const board = document.getElementById('board' + i);
     const next = document.getElementById('next' + i);
@@ -2958,6 +3023,7 @@ function frame(now) {
     update(dt);
     netTick(dt);
     for (const s of seats) {
+      if (mobileLayout && s.index === 1) continue;
       seat = s;
       draw();
       drawNext();
