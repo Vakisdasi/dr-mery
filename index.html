@@ -2,9 +2,17 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#173a30">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="dr.mery">
+<meta name="description" content="dr.mery — дві пляшки. Бот, друг поруч або хтось у мережі за ніком.">
 <title>dr.mery</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23173a30'/><rect x='18' y='40' width='64' height='22' rx='11' fill='%23ff4b4b'/><rect x='50' y='40' width='32' height='22' rx='11' fill='%234c7dff'/></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
 <style>
   :root {
     --bg: #10211c;
@@ -353,6 +361,8 @@
     </div>
 
     <button type="button" id="start">Почати гру</button>
+    <button type="button" class="ghost" id="installApp" hidden style="margin-top:10px;width:100%">Додати на телефон</button>
+    <p class="hint" id="installHint" hidden>На iPhone: Поділитися → На екран «Додому».</p>
     <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, а коли долітає — вибухає і спалює випадково одну, дві або три клітини в пляшці. Шістка одного кольору, навіть без вірусу, кличе триповерховий торт: обидві пляшки завмирають, а потім у твоїй лишається випадково від трьох до шести вірусів. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
     <p class="howto" id="keyBlurb"></p>
     <p class="howto" id="keyBlurb2"></p>
@@ -3719,6 +3729,38 @@ if (new URLSearchParams(location.search).has('test')) {
     out.textContent = String(err && err.stack || err);
   }
 }
+
+(function setupPwa() {
+  const btn = document.getElementById('installApp');
+  const hint = document.getElementById('installHint');
+  let deferred = null;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  if (!standalone && /iPhone|iPad|iPod/i.test(navigator.userAgent) && hint) hint.hidden = false;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferred = e;
+    if (btn) btn.hidden = false;
+    if (hint) hint.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    deferred = null;
+    if (btn) btn.hidden = true;
+    if (hint) hint.hidden = true;
+  });
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      try { await deferred.userChoice; } catch (err) { /* скасовано */ }
+      deferred = null;
+      btn.hidden = true;
+    });
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* локально без https можна */ });
+  }
+})();
 </script>
 </body>
 </html>
