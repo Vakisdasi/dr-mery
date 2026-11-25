@@ -271,7 +271,7 @@
       <span>На старті: <b id="virusNum">24</b></span>
     </div>
     <input id="level" type="range" min="0" max="20" value="5">
-    <p class="hint">Рівень 0 — 4 віруси внизу пляшки. Рівень 20 — 84, майже під шийкою. Після 20 кількість уже не росте, рахунок переноситься.</p>
+    <p class="hint">Рівень 0 — 4 віруси внизу пляшки. Рівень 20 — 44, ще з повітрям зверху. Після 20 кількість уже не росте, рахунок переноситься.</p>
 
     <div class="block">Швидкість</div>
     <div class="speeds" id="speeds">
@@ -279,7 +279,7 @@
       <button type="button" data-speed="med" aria-pressed="true">Середньо</button>
       <button type="button" data-speed="hi" aria-pressed="false">Швидко</button>
     </div>
-    <p class="hint">Швидкість задає і падіння, і очки. Перший раунд іде обраним темпом, далі кожен раунд трохи швидший. Приріст утричі спокійніший, ніж був. Очки дають тільки знищені віруси.</p>
+    <p class="hint">Швидкість задає і падіння, і очки. Перший раунд іде обраним темпом, далі кожен раунд трохи швидший. Приріст у дев’ять разів спокійніший, ніж був на початку. Очки дають тільки знищені віруси.</p>
 
     <label class="block" for="nick">Твій нік</label>
     <input id="nick" type="text" maxlength="16" autocomplete="nickname" placeholder="наприклад Мері">
@@ -306,7 +306,7 @@
     </div>
 
     <button type="button" id="start">Почати гру</button>
-    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, а коли долітає — вибухає і спалює випадково одну, дві або три клітини в пляшці. Шістка одного кольору, навіть без вірусу, кличе триповерховий торт: обидві пляшки завмирають, а потім у твоїй лишається лише один випадковий вірус. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
+    <p class="howto">Збери <b>4 або більше</b> клітин одного кольору в рядок чи стовпчик. Діагональ не рахується. П’ятірка з вірусом кличе торт Мері: він падає повільно, його можна зсунути, а коли долітає — вибухає і спалює випадково одну, дві або три клітини в пляшці. Шістка одного кольору, навіть без вірусу, кличе триповерховий торт: обидві пляшки завмирають, а потім у твоїй лишається випадково від трьох до шести вірусів. Твої клавіші зліва, друга — справа. Якщо друга немає, права пляшка грає сама.</p>
     <p class="howto" id="keyBlurb"></p>
     <p class="howto" id="keyBlurb2"></p>
     <button type="button" class="ghost" id="openKeysMenu">Змінити клавіші</button>
@@ -428,6 +428,10 @@ const PAL = [
 const BASE = { low: 720, med: 420, hi: 220 };
 const MINI = { low: 120, med: 75, hi: 48 };
 const VIRUS_MAX = 84;
+const VIRUS_SOFT = 44;
+function virusQuota(lv) {
+  return Math.min(VIRUS_SOFT, 2 * lv + 4);
+}
 const SPEED_NAME = { low: 'Повільно', med: 'Середньо', hi: 'Швидко' };
 const POINTS = { low: 100, med: 200, hi: 300 };
 const ACTION_IDS = ['left', 'right', 'cw', 'ccw', 'soft', 'hard', 'pause'];
@@ -661,7 +665,7 @@ function saveOpts() {
 function refreshMenu() {
   const lv = Number(el.level.value);
   el.levelNum.textContent = String(lv).padStart(2, '0');
-  el.virusNum.textContent = String(Math.min(VIRUS_MAX, 4 * lv + 4));
+  el.virusNum.textContent = String(virusQuota(lv));
 }
 
 function setText(node, text) {
@@ -782,7 +786,7 @@ function shuffle(arr) {
 }
 
 function placeViruses(count) {
-  const top = Math.max(3, Math.round(11 - level * 0.45));
+  const top = Math.max(5, Math.round(12 - level * 0.25));
   const spots = [];
   for (let y = top; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) spots.push([x, y]);
@@ -1192,7 +1196,7 @@ function lockPill() {
 
 function roundDropInterval() {
   const steps = Math.max(0, level - runStart);
-  return Math.max(MINI[speed], Math.round(BASE[speed] * Math.pow(0.86, steps / 3)));
+  return Math.max(MINI[speed], Math.round(BASE[speed] * Math.pow(0.86, steps / 9)));
 }
 
 function beginClear(set) {
@@ -1326,20 +1330,27 @@ function towerEarned(set) {
   return false;
 }
 
-function wipeToOneVirus() {
+function wipeKeepViruses() {
   const viruses = [];
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       if (seat.grid[y][x] && seat.grid[y][x].t === 'v') viruses.push([x, y]);
     }
   }
-  const keep = viruses.length ? viruses[Math.floor(Math.random() * viruses.length)] : null;
+  for (let i = 0; i < viruses.length; i++) {
+    const j = i + Math.floor(Math.random() * (viruses.length - i));
+    const swap = viruses[i];
+    viruses[i] = viruses[j];
+    viruses[j] = swap;
+  }
+  const keepN = Math.min(viruses.length, 3 + Math.floor(Math.random() * 4));
+  const keep = new Set(viruses.slice(0, keepN).map((cell) => cell[0] + ',' + cell[1]));
   let burned = 0;
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = seat.grid[y][x];
       if (!cell) continue;
-      if (keep && keep[0] === x && keep[1] === y) continue;
+      if (keep.has(x + ',' + y)) continue;
       if (cell.t === 'v') burned++;
       burst(x, y, cell.c);
       seat.grid[y][x] = null;
@@ -1386,7 +1397,7 @@ function finishFeast() {
     withSeat(seats[index], () => explodeCake(3, 6));
     return;
   }
-  withSeat(seats[index], () => wipeToOneVirus());
+  withSeat(seats[index], () => wipeKeepViruses());
   if (index === 0 && net && net.live) sendNet({ t: 'feast-boom', g: packGrid(seats[0].grid) });
   withSeat(seats[index], () => {
     if (virusCount() === 0) beginWin();
@@ -1494,7 +1505,7 @@ function makeLayout() {
   const proto = createSeat(9, false);
   withSeat(proto, () => {
     proto.grid = emptyGrid();
-    placeViruses(Math.min(VIRUS_MAX, 4 * level + 4));
+    placeViruses(virusQuota(level));
     fixInitialMatches();
   });
   return proto.grid;
@@ -3415,15 +3426,15 @@ function runTests() {
   for (let x = 0; x < 6; x++) seat.grid[14][x] = { t: 'v', c: 1 };
   assert('шістка з вірусом теж велика', towerEarned(findClearSet()));
   seat.grid = emptyGrid();
-  for (let x = 0; x < 3; x++) seat.grid[15][x] = { t: 'v', c: 0 };
-  seat.grid[15][3] = { t: 'p', c: 1, id: 9 };
+  for (let x = 0; x < 8; x++) seat.grid[15][x] = { t: 'v', c: 0 };
+  seat.grid[14][0] = { t: 'p', c: 1, id: 9 };
   seat.sim = true;
   const towerRandom = Math.random;
   Math.random = () => 0;
-  wipeToOneVirus();
+  wipeKeepViruses();
   Math.random = towerRandom;
   seat.sim = false;
-  assert('великий торт лишає один вірус', virusCount() === 1 && seat.grid[15][0] && seat.grid[15][0].t === 'v' && !seat.grid[15][1] && !seat.grid[15][3]);
+  assert('великий торт лишає від 3 до 6 вірусів', virusCount() === 3 && !seat.grid[14][0] && seat.grid[15][0] && seat.grid[15][1] && seat.grid[15][2] && !seat.grid[15][3]);
 
   seat.grid = emptyGrid();
   for (let y = 12; y <= 15; y++) seat.grid[y][2] = { t: 'v', c: 1 };
@@ -3589,11 +3600,12 @@ function runTests() {
   assert('перший раунд іде обраним темпом', roundDropInterval() === BASE.med);
   level = 6;
   assert('наступний раунд швидший', roundDropInterval() < BASE.med && roundDropInterval() > MINI.med);
-  level = 8;
-  assert('три раунди як раніше один', roundDropInterval() === Math.round(BASE.med * 0.86));
-  level = runStart + 40;
+  level = 14;
+  assert('дев’ять раундів як раніше один', roundDropInterval() === Math.round(BASE.med * 0.86));
+  level = runStart + 120;
   assert('темп не швидший за мінімум', roundDropInterval() === MINI.med);
   assert('матч до максимуму вірусів', VIRUS_MAX === 84);
+  assert('на десятому рівні менше вірусів', virusQuota(10) === 24 && virusQuota(20) === VIRUS_SOFT);
   runStart = savedRun;
   speed = savedSpeed;
   level = savedLevel;
